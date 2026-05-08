@@ -1,0 +1,3047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cisco PXP — Opportunity Console</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+:root {
+  --bg-0: #0a0e14;
+  --bg-1: #11161e;
+  --bg-2: #1a212c;
+  --bg-3: #232c39;
+  --line: #2a3340;
+  --line-bright: #3a4655;
+  --text-0: #f1f5fa;
+  --text-1: #c8d1de;
+  --text-2: #97a2b1;
+  --text-3: #6e7989;
+  --accent: #ffb800;
+  --accent-dim: #b88600;
+  --good: #4ade80;
+  --good-dim: #2d6e4a;
+  --warn: #fb923c;
+  --warn-bg: rgba(251, 146, 60, 0.1);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --info: #60a5fa;
+  --purple: #c084fc;
+
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-serif: 'IBM Plex Serif', Georgia, serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(255, 184, 0, 0.04) 0%, transparent 35%),
+    radial-gradient(circle at 100% 100%, rgba(96, 165, 250, 0.04) 0%, transparent 35%);
+  background-attachment: fixed;
+}
+
+/* ==== Header ==== */
+header {
+  border-bottom: 1px solid var(--line);
+  padding: 18px 24px;
+  background: linear-gradient(180deg, var(--bg-1) 0%, rgba(17, 22, 30, 0.85) 100%);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.brand h1 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+}
+.brand h1 span { color: var(--accent); }
+.brand .subtitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.meta-info {
+  display: flex;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+}
+.meta-info b {
+  display: block;
+  color: var(--text-0);
+  font-weight: 500;
+  font-size: 14px;
+  margin-top: 2px;
+}
+#meta-partner:hover {
+  border-bottom-color: var(--accent) !important;
+  color: var(--accent);
+}
+
+/* ==== Nav tabs ==== */
+nav {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+  position: sticky;
+  top: 73px;
+  z-index: 49;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tabs {
+  display: flex;
+  padding: 0 24px;
+  min-width: max-content;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-1);
+  padding: 14px 20px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  position: relative;
+}
+.tab-btn:hover { color: var(--text-0); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-btn .badge {
+  display: inline-block;
+  background: var(--bg-3);
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+.tab-btn.active .badge { background: var(--accent-dim); color: var(--bg-0); }
+
+/* ==== Main content ==== */
+main {
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+.view { display: none; }
+.view.active { display: block; }
+
+/* ==== Loading state ==== */
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  gap: 20px;
+}
+.loader .spinner {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.error-state {
+  border: 1px solid var(--danger);
+  background: var(--danger-bg);
+  padding: 24px;
+  border-radius: 4px;
+  margin: 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.error-state h3 {
+  font-family: var(--font-sans);
+  margin-bottom: 12px;
+  color: var(--danger);
+}
+.error-state code {
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* ==== KPI cards ==== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--accent);
+}
+.kpi.kpi-danger::before { background: var(--danger); }
+.kpi.kpi-warn::before { background: var(--warn); }
+.kpi.kpi-good::before { background: var(--good); }
+.kpi.kpi-info::before { background: var(--info); }
+
+.kpi-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-1);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-0);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.kpi-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  margin-top: 6px;
+}
+.kpi-danger .kpi-value { color: var(--danger); }
+.kpi-warn .kpi-value { color: var(--warn); }
+.kpi-good .kpi-value { color: var(--good); }
+
+/* Nested sub-row for drill-in KPIs (e.g. SR Expired / SR Next 90d under Service Renew) */
+.kpi-sub-wrap {
+  margin: -12px 0 24px 0;       /* pull up against the main grid above it */
+  padding: 14px 16px 14px 16px;
+  border-left: 2px solid var(--line);
+  margin-left: 12px;
+}
+.kpi-sub-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-1);
+  margin-bottom: 10px;
+  opacity: 0.75;
+}
+.kpi-grid-sub {
+  margin-bottom: 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.kpi-grid-sub .kpi {
+  padding: 12px 16px;
+}
+.kpi-grid-sub .kpi-value {
+  font-size: 20px;
+}
+
+/* Per-section urgency breakdown ribbon (sits under a section header, above the table) */
+.kpi-grid-breakdown {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: -4px;
+  margin-bottom: 14px;
+}
+.kpi-grid-breakdown .kpi {
+  padding: 10px 14px;
+}
+.kpi-grid-breakdown .kpi-label {
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+.kpi-grid-breakdown .kpi-value {
+  font-size: 18px;
+}
+.kpi-grid-breakdown .kpi-sub {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.kpi-grid-breakdown:empty {
+  display: none;
+}
+
+/* ==== Section header ==== */
+.section {
+  margin-bottom: 32px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-0);
+  letter-spacing: -0.01em;
+}
+.section-title .badge {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-left: 10px;
+  letter-spacing: 0;
+}
+.section-action {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ==== Two-col layout ==== */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ==== Chart panel ==== */
+.panel {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 18px;
+}
+.panel h3 {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-0);
+  margin-bottom: 14px;
+}
+.chart-container {
+  position: relative;
+  height: 280px;
+}
+
+/* ==== Tabulator overrides ==== */
+.table-wrap {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.table-toolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: var(--bg-2);
+}
+.table-toolbar input,
+.table-toolbar select {
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  color: var(--text-0);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  border-radius: 3px;
+  outline: none;
+  transition: border 0.15s;
+}
+.table-toolbar input:focus,
+.table-toolbar select:focus {
+  border-color: var(--accent);
+}
+.table-toolbar input { min-width: 200px; }
+.table-toolbar label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-right: 4px;
+}
+.btn {
+  background: var(--bg-3);
+  border: 1px solid var(--line-bright);
+  color: var(--text-0);
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--accent); color: var(--bg-0); border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: var(--bg-0); border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+.btn-ghost { background: transparent; border-color: var(--line); }
+.toolbar-spacer { flex: 1; }
+.row-count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-0);
+}
+.row-count b { color: var(--accent); }
+
+/* Tabulator theme adjustments */
+.tabulator {
+  background: var(--bg-1);
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+.tabulator .tabulator-header {
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-0);
+  font-weight: 600;
+}
+.tabulator .tabulator-header .tabulator-col {
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+}
+.tabulator .tabulator-row {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-0);
+}
+.tabulator .tabulator-row.tabulator-row-even {
+  background: var(--bg-1);
+}
+.tabulator .tabulator-row:hover {
+  background: var(--bg-2) !important;
+}
+.tabulator .tabulator-row.tabulator-selected {
+  background: rgba(255, 184, 0, 0.12) !important;
+}
+.tabulator-cell {
+  border-right: 1px solid var(--line);
+}
+.tabulator-row.row-expired { background: rgba(239, 68, 68, 0.08) !important; }
+.tabulator-row.row-expired:hover { background: rgba(239, 68, 68, 0.15) !important; }
+.tabulator-row.row-urgent { background: rgba(251, 146, 60, 0.07) !important; }
+.tabulator-row.row-urgent:hover { background: rgba(251, 146, 60, 0.13) !important; }
+
+/* Clickable cell — explicit hover affordance */
+.tabulator-cell.clickable-cell { cursor: pointer; }
+.tabulator-cell.clickable-cell:hover { background: rgba(255, 184, 0, 0.08) !important; }
+
+.tabulator .tabulator-footer {
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  color: var(--text-0);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.tabulator .tabulator-footer .tabulator-page {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  color: var(--text-1);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+  background: var(--accent);
+  color: var(--bg-0);
+  border-color: var(--accent);
+}
+
+.bucket-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-block;
+}
+.bucket-expired { background: var(--danger-bg); color: var(--danger); }
+.bucket-d30 { background: var(--warn-bg); color: var(--warn); }
+.bucket-d90 { background: var(--warn-bg); color: var(--warn); }
+.bucket-d180 { background: rgba(96, 165, 250, 0.1); color: var(--info); }
+.bucket-d365 { background: rgba(96, 165, 250, 0.1); color: var(--info); }
+.bucket-y2 { background: rgba(168, 178, 193, 0.1); color: var(--text-1); }
+.bucket-y2plus { background: rgba(168, 178, 193, 0.1); color: var(--text-1); }
+.bucket-unknown { background: var(--bg-3); color: var(--text-2); }
+
+.status-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.status-active { color: var(--good); background: rgba(74, 222, 128, 0.1); }
+.status-expired { color: var(--danger); background: var(--danger-bg); }
+.status-overdue { color: var(--warn); background: var(--warn-bg); }
+
+.money-cell { font-family: var(--font-mono); text-align: right; color: var(--accent); font-weight: 500; }
+.num-cell { font-family: var(--font-mono); text-align: right; }
+.muted { color: var(--text-2); }
+.mono { font-family: var(--font-mono); }
+
+/* ==== Customer 360 ==== */
+.cust360-search {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.cust360-search input {
+  width: 100%;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  color: var(--text-0);
+  padding: 12px 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  border-radius: 3px;
+  outline: none;
+}
+.cust360-search input:focus { border-color: var(--accent); }
+.cust-results {
+  margin-top: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.cust-result {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.1s;
+}
+.cust-result:hover { background: var(--bg-2); }
+.cust-result-name { font-weight: 500; font-size: 14px; }
+.cust-result-totals {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.cust-detail {
+  display: none;
+}
+.cust-detail.active { display: block; }
+.cust-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* ==== Print styles ==== */
+@media print {
+  body { background: white; color: black; font-size: 11px; }
+  header { position: static; border-bottom: 2px solid black; background: white !important; }
+  nav { display: none; }
+  .brand h1, .meta-info b { color: black !important; }
+  .meta-info, .brand .subtitle { color: #555 !important; }
+  /* Only show the currently active view — not all of them */
+  .view { display: none !important; }
+  .view.active { display: block !important; }
+  .table-toolbar, .btn, .reload-btn { display: none !important; }
+  /* Hide print bar in printed output (the button is mid-page otherwise) */
+  .print-bar { display: none !important; }
+  /* Hide the inactive time-filter buttons; keep the active one as a label */
+  .time-filter { background: white !important; border: none !important; padding: 0 0 12px 0 !important; margin: 0 0 8px 0 !important; }
+  .time-filter-btn { display: none !important; }
+  .time-filter-btn.active { display: inline-block !important; background: #f0f0f0 !important; color: black !important; border: 1px solid #999 !important; }
+  .time-filter-label { color: #555 !important; }
+  .time-filter-count { color: #555 !important; }
+  .time-filter-count b { color: black !important; }
+  /* Hide pagination in print — rows are expanded below */
+  .tabulator-footer, .tabulator-paginator { display: none !important; }
+  /* Hide column header filters in print (the input boxes look weird) */
+  .tabulator-header-filter { display: none !important; }
+  .panel, .kpi, .table-wrap { background: white; border: 1px solid #999; box-shadow: none; }
+  .kpi-value { color: black !important; font-size: 18px !important; }
+  .kpi-label { font-size: 9px !important; }
+  .kpi-sub { font-size: 9px !important; }
+
+  /* ============ TABULATOR PRINT FIXES ============ */
+  /* The hard problem: Tabulator virtualizes rows and sets inline pixel heights
+     that produce huge empty regions in print, plus columns retain fixed pixel
+     widths that overflow the page. Force everything to be a normal HTML table
+     for printing: auto height, fixed table layout, percentage widths. */
+  .tabulator {
+    font-size: 9px !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+  .tabulator, .tabulator-row, .tabulator .tabulator-header, .tabulator-cell {
+    background: white !important; color: black !important; border-color: #ccc !important;
+  }
+  .tabulator .tabulator-cell, .tabulator .tabulator-col-content { padding: 3px 5px !important; }
+  .tabulator .tabulator-tableholder {
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .tabulator .tabulator-table {
+    transform: none !important;
+    width: 100% !important;
+    position: static !important;
+  }
+  .tabulator .tabulator-row {
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+  }
+  .tabulator .tabulator-cell {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .tabulator .tabulator-col {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    white-space: normal !important;
+  }
+  /* Hide low-priority columns in print — keeps surviving columns wide enough to read */
+  .tabulator .tabulator-col.col-print-hide,
+  .tabulator .tabulator-cell.col-print-hide { display: none !important; }
+  /* Section breaks: don't split a section header from its table */
+  .section-header { page-break-after: avoid !important; }
+  .table-wrap, .panel, .kpi-grid { page-break-inside: avoid !important; }
+  /* Avoid a stray page at the end caused by trailing empty space */
+  main { padding-bottom: 0 !important; }
+
+  .tabulator-row.row-expired { background: #fee !important; }
+  .tabulator-row.row-urgent { background: #fff3e0 !important; }
+  .money-cell { color: #b88600 !important; }
+  .section-title, .panel h3 { color: black !important; }
+  body::after { content: ''; }
+  /* Landscape Letter at 0.4" margins gives more horizontal room */
+  @page { margin: 0.4in; size: landscape; }
+}
+
+/* ==== Print bar ==== */
+.print-bar {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ==== Empty state ==== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* ==== Rep banner (print + screen) ==== */
+.rep-banner {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.rep-banner-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.rep-banner-name {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-0);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.rep-banner-meta {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
+  text-align: right;
+}
+.rep-banner-meta b {
+  display: block;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+@media print {
+  .rep-banner {
+    background: white !important;
+    border: 1px solid #999 !important;
+    border-left: 4px solid #b88600 !important;
+  }
+  .rep-banner-label, .rep-banner-meta { color: #555 !important; }
+  .rep-banner-name { color: black !important; }
+  .rep-banner-meta b { color: #b88600 !important; }
+}
+
+/* ==== Time filter buttons ==== */
+.time-filter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+.time-filter-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-right: 8px;
+}
+.time-filter-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-0);
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.time-filter-btn:hover {
+  border-color: var(--line-bright);
+  background: var(--bg-3);
+}
+.time-filter-btn.active {
+  background: var(--accent);
+  color: var(--bg-0);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.time-filter-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+  margin-left: auto;
+}
+.time-filter-count b { color: var(--accent); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ==== Dropzone (landing screen) ==== */
+.dropzone-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 24px;
+}
+.dropzone {
+  width: 100%;
+  max-width: 720px;
+  border: 2px dashed var(--line-bright);
+  border-radius: 8px;
+  padding: 60px 40px;
+  text-align: center;
+  background: var(--bg-1);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.dropzone:hover, .dropzone.drag-over {
+  border-color: var(--accent);
+  background: rgba(255, 184, 0, 0.04);
+}
+.dropzone.drag-over {
+  transform: scale(1.01);
+}
+.dropzone-icon {
+  font-family: var(--font-serif);
+  font-size: 48px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 16px;
+  letter-spacing: -0.04em;
+}
+.dropzone h2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-0);
+  margin-bottom: 10px;
+}
+.dropzone p {
+  color: var(--text-1);
+  font-size: 13px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.dropzone .mono-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 16px;
+  letter-spacing: 0.02em;
+}
+.dropzone-status {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--bg-2);
+  border-radius: 4px;
+  text-align: left;
+  display: none;
+}
+.dropzone-status.active { display: block; }
+.dropzone-status .file-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 6px 0;
+  color: var(--text-0);
+}
+.dropzone-status .file-row .marker { font-weight: 600; }
+.dropzone-status .file-row.ok .marker { color: var(--good); }
+.dropzone-status .file-row.miss .marker { color: var(--text-3); }
+.dropzone-status .file-row .file-rows { color: var(--text-1); font-size: 12px; }
+.dropzone-progress {
+  margin-top: 14px;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.dropzone-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.2s;
+}
+.dropzone-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.reload-btn {
+  background: transparent;
+  border: 1px solid var(--line-bright);
+  color: var(--text-0);
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.reload-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand">
+      <h1>Cisco PXP <span>·</span> Console</h1>
+      <span class="subtitle">Opportunity Intelligence</span>
+    </div>
+    <div class="meta-info">
+      <div>Partner<b id="meta-partner" title="Click to edit" style="cursor: pointer; border-bottom: 1px dashed transparent;">—</b></div>
+      <div>Loaded<b id="meta-generated">—</b></div>
+      <div>As of<b id="meta-today">—</b></div>
+      <div>Total Lines<b id="meta-rows">—</b></div>
+      <div><button class="reload-btn" id="reload-btn" style="display:none;" onclick="resetToDropzone()">↻ Load New Data</button></div>
+    </div>
+  </div>
+</header>
+
+<nav id="main-nav" style="display:none;">
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-view="dashboard">Dashboard</button>
+    <button class="tab-btn" data-view="quarterly">Pipeline by Quarter</button>
+    <button class="tab-btn" data-view="reps">Per-Rep Call Sheets</button>
+    <button class="tab-btn" data-view="customer360">Customer 360</button>
+    <button class="tab-btn" data-view="ea">EA Renewals</button>
+    <button class="tab-btn" data-view="hwfamily">HW Refresh by Family</button>
+    <button class="tab-btn" data-view="service-renew">Service Renew <span class="badge" id="b-sr">—</span></button>
+    <button class="tab-btn" data-view="service-attach">Service Attach <span class="badge" id="b-sa">—</span></button>
+    <button class="tab-btn" data-view="hw-refresh">HW Refresh <span class="badge" id="b-hw">—</span></button>
+    <button class="tab-btn" data-view="sw-renew">Software Renew <span class="badge" id="b-sw">—</span></button>
+    <button class="tab-btn" data-view="sw-auto">SW Auto-Renew <span class="badge" id="b-swa">—</span></button>
+  </div>
+</nav>
+
+<main>
+  <div id="dropzone-container">
+    <div class="dropzone-wrap">
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">⤓</div>
+        <h2>Drop Your 5 Cisco PXP CSVs Here</h2>
+        <p>Drag and drop all 5 CSV files at once, or click anywhere in this box to choose them.</p>
+        <p style="font-size: 12px; color: var(--text-2); max-width: 540px; margin: 8px auto 0;">Files are read entirely in your browser — nothing is uploaded to any server. The Hardware Refresh file is large and can take 30-60 seconds to parse; the others are quick.</p>
+        <div class="mono-hint">Service Renew · Service Attach · Hardware Refresh · Software Renew (Auto) · Software Renew (Opp)</div>
+        <input type="file" id="file-input" multiple accept=".csv" style="display:none;">
+        <div class="dropzone-status" id="dropzone-status"></div>
+        <div class="dropzone-progress" id="dropzone-progress" style="display:none;">
+          <div class="dropzone-progress-bar" id="dropzone-progress-bar"></div>
+        </div>
+        <div class="dropzone-actions" id="dropzone-actions" style="display:none;">
+          <button class="btn btn-primary" id="process-btn">Process Files</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('file-input').click()">Pick Different Files</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ DASHBOARD ============================ -->
+  <div class="view" id="view-dashboard">
+    <div class="print-bar">
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <p style="font-size: 13px; color: var(--text-1); margin-bottom: 16px;">
+      <span style="color: var(--accent); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-right: 8px;">Filter active</span>
+      Every view is scoped to an actionable window. Renewals (SR / SW / SW Auto) and HW Refresh: 90 days back through 365 days forward on Item End Date or Last Support Date. Service Attach: items shipped in the last 90 days only — older shipments have low close rates.
+    </p>
+
+    <div class="kpi-grid" id="dashboard-kpis"></div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Immediate Attack Priorities <span class="badge">Where to start</span></div>
+        <div class="section-action">Each source partitioned by urgency · rows for a source sum to the ribbon total</div>
+      </div>
+      <div class="table-wrap">
+        <table id="priority-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding: 10px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-0); text-transform: uppercase; font-weight: 600; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); background: var(--bg-2);">Priority</th>
+              <th style="text-align:right; padding: 10px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-0); text-transform: uppercase; font-weight: 600; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); background: var(--bg-2);">Opportunity ($)</th>
+              <th style="text-align:right; padding: 10px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-0); text-transform: uppercase; font-weight: 600; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); background: var(--bg-2);">Lines</th>
+              <th style="text-align:left; padding: 10px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-0); text-transform: uppercase; font-weight: 600; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); background: var(--bg-2);">Why It Matters</th>
+            </tr>
+          </thead>
+          <tbody id="priority-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>Opportunity by Time Bucket</h3>
+        <div class="chart-container"><canvas id="chart-buckets"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Top 10 Customers — Combined Opportunity</h3>
+        <div class="chart-container"><canvas id="chart-customers"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top: 24px;">
+      <div class="section-header">
+        <div class="section-title">Top 25 Customers — Combined</div>
+        <div class="section-action">All 5 reports aggregated · click any row for Customer 360</div>
+      </div>
+      <div id="top-customers-table"></div>
+    </div>
+  </div>
+
+  <!-- ============================ QUARTERLY ============================ -->
+  <div class="view" id="view-quarterly">
+    <div class="print-bar">
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Quarter-by-Quarter Pipeline</div>
+        <div class="section-action">Cisco fiscal quarters · 90 days back through 1 year forward · SR + SW Renew + HW Refresh + SW Auto-Renew</div>
+      </div>
+      <div class="panel">
+        <div class="chart-container" style="height: 380px;"><canvas id="chart-quarterly"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Quarterly Detail Table</div>
+      </div>
+      <div id="quarterly-table"></div>
+    </div>
+  </div>
+
+  <!-- ============================ REPS ============================ -->
+  <div class="view" id="view-reps">
+    <div class="print-bar">
+      <button class="btn btn-ghost" id="rep-email-btn" onclick="emailRepCallSheet()" style="display: none;">✉ Email This Call Sheet</button>
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Per-Rep Call Sheets</div>
+        <div class="section-action">Pick a rep to see their book</div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-1); margin-bottom: 14px; line-height: 1.5;">
+        <b style="color: var(--accent);">How this works:</b>
+        Cisco PXP only populates a Partner Sales Rep on Service Renew and Software Renew records.
+        For Hardware Refresh and Service Attach (where Cisco doesn't supply a rep),
+        this view pulls in any line whose <b>end customer also appears</b> in the rep's Service/Software book —
+        i.e. customers the rep already owns.
+      </p>
+      <div class="table-toolbar">
+        <label>Rep:</label>
+        <select id="rep-picker"></select>
+        <div class="toolbar-spacer"></div>
+        <span class="row-count" id="rep-summary"></span>
+      </div>
+    </div>
+
+    <div id="rep-detail" style="display: none;">
+      <div class="rep-banner">
+        <div>
+          <div class="rep-banner-label">Call Sheet For</div>
+          <div class="rep-banner-name" id="rep-banner-name">—</div>
+        </div>
+        <div class="rep-banner-meta" id="rep-banner-meta"></div>
+      </div>
+      <div class="kpi-grid" id="rep-kpis"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Service Renew Opportunities</div>
+          <div class="section-action">SmartNet renewals · sorted by urgency</div>
+        </div>
+        <div id="rep-sr-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Software Renew Opportunities</div>
+          <div class="section-action">License/subscription renewals · sorted by urgency</div>
+        </div>
+        <div id="rep-sw-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Hardware Refresh — Rep's Customers</div>
+          <div class="section-action">Aging hardware at customers in this rep's book</div>
+        </div>
+        <div id="rep-hw-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Service Attach — Rep's Customers</div>
+          <div class="section-action">Uncovered hardware at customers in this rep's book</div>
+        </div>
+        <div id="rep-sa-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ CUSTOMER 360 ============================ -->
+  <div class="view" id="view-customer360">
+    <div class="print-bar">
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Customer 360</div>
+        <div class="section-action">All 5 reports for one end customer</div>
+      </div>
+      <div class="cust360-search">
+        <input type="text" id="cust-search" placeholder="Type a customer name (e.g. Trinity, Wisconsin, Apollo)…" autocomplete="off">
+        <div class="cust-results" id="cust-results"></div>
+      </div>
+    </div>
+
+    <div id="cust-detail" class="cust-detail">
+      <div class="section-header">
+        <div class="section-title" id="cust-name">—</div>
+      </div>
+
+      <div class="kpi-grid" id="cust-kpis"></div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Service Renew Lines</div></div>
+        <div class="kpi-grid kpi-grid-breakdown" id="cust-sr-breakdown"></div>
+        <div id="cust-sr-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Software Renew Lines</div></div>
+        <div class="kpi-grid kpi-grid-breakdown" id="cust-sw-breakdown"></div>
+        <div id="cust-sw-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Service Attach (Uncovered HW)</div></div>
+        <div id="cust-sa-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Hardware Refresh</div></div>
+        <div class="kpi-grid kpi-grid-breakdown" id="cust-hw-breakdown"></div>
+        <div id="cust-hw-table"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Software Auto-Renew</div></div>
+        <div class="kpi-grid kpi-grid-breakdown" id="cust-swa-breakdown"></div>
+        <div id="cust-swa-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ EA ============================ -->
+  <div class="view" id="view-ea">
+    <div class="print-bar">
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">EA Renewals — Isolated</div>
+        <div class="section-action">EA Flag = Y · expired or expiring within 1 year</div>
+      </div>
+      <div class="kpi-grid" id="ea-kpis"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">EA Lines</div>
+      </div>
+      <div id="ea-table"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">EA Customers — Aggregated</div>
+      </div>
+      <div id="ea-cust-table"></div>
+    </div>
+  </div>
+
+  <!-- ============================ HW FAMILY ============================ -->
+  <div class="view" id="view-hwfamily">
+    <div class="print-bar">
+      <button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Hardware Refresh by Product Family</div>
+        <div class="section-action">Filtered to actionable subset · within 12 months of EoS or already past</div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Top Architectures Needing Refresh</h3>
+          <div class="chart-container"><canvas id="chart-hw-arch"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3>Top 15 Product Families</h3>
+          <div class="chart-container"><canvas id="chart-hw-family"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="section-title">Family Detail</div></div>
+      <div id="hw-family-table"></div>
+    </div>
+  </div>
+
+  <!-- ============================ DETAIL TABLE VIEWS ============================ -->
+  <div class="view" id="view-service-renew">
+    <div class="print-bar"><button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button></div>
+    <div class="section-header"><div class="section-title">Service Renew</div><div class="section-action">SmartNet renewals · 90 days back through 1 year forward</div></div>
+    <div class="time-filter" data-target="sr">
+      <span class="time-filter-label">Time Window:</span>
+      <button class="time-filter-btn active" data-bucket="all">All</button>
+      <button class="time-filter-btn" data-bucket="expired">Expired</button>
+      <button class="time-filter-btn" data-bucket="d30">Next 30d</button>
+      <button class="time-filter-btn" data-bucket="d90">31-90d</button>
+      <button class="time-filter-btn" data-bucket="d180">91-180d</button>
+      <button class="time-filter-btn" data-bucket="d365">181-365d</button>
+      <span class="time-filter-count" id="sr-count"></span>
+    </div>
+    <div id="sr-table"></div>
+  </div>
+
+  <div class="view" id="view-service-attach">
+    <div class="print-bar"><button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button></div>
+    <div class="section-header"><div class="section-title">Service Attach — Uncovered Hardware</div><div class="section-action">Items shipped in last 90 days · highest close-rate window</div></div>
+    <div id="sa-table"></div>
+  </div>
+
+  <div class="view" id="view-hw-refresh">
+    <div class="print-bar"><button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button></div>
+    <div class="section-header"><div class="section-title">Hardware Refresh — Actionable Items</div><div class="section-action">EoS within 90 days past through 1 year forward</div></div>
+    <div class="time-filter" data-target="hw">
+      <span class="time-filter-label">Support Window:</span>
+      <button class="time-filter-btn active" data-bucket="all">All</button>
+      <button class="time-filter-btn" data-bucket="expired">Past EoS</button>
+      <button class="time-filter-btn" data-bucket="d30">EoS in 30d</button>
+      <button class="time-filter-btn" data-bucket="d90">EoS in 90d</button>
+      <button class="time-filter-btn" data-bucket="d180">EoS in 180d</button>
+      <button class="time-filter-btn" data-bucket="d365">EoS in 1yr</button>
+      <span class="time-filter-count" id="hw-count"></span>
+    </div>
+    <div id="hw-table"></div>
+  </div>
+
+  <div class="view" id="view-sw-renew">
+    <div class="print-bar"><button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button></div>
+    <div class="section-header"><div class="section-title">Software Renew</div><div class="section-action">Manual renewals · 90 days back through 1 year forward</div></div>
+    <div class="time-filter" data-target="sw">
+      <span class="time-filter-label">Time Window:</span>
+      <button class="time-filter-btn active" data-bucket="all">All</button>
+      <button class="time-filter-btn" data-bucket="expired">Expired</button>
+      <button class="time-filter-btn" data-bucket="d30">Next 30d</button>
+      <button class="time-filter-btn" data-bucket="d90">31-90d</button>
+      <button class="time-filter-btn" data-bucket="d180">91-180d</button>
+      <button class="time-filter-btn" data-bucket="d365">181-365d</button>
+      <span class="time-filter-count" id="sw-count"></span>
+    </div>
+    <div id="sw-table"></div>
+  </div>
+
+  <div class="view" id="view-sw-auto">
+    <div class="print-bar"><button class="btn btn-ghost" onclick="window.print()">Print / Save PDF</button></div>
+    <div class="section-header"><div class="section-title">Software Auto-Renew</div><div class="section-action">On auto-renew unless cancelled · 90 days back through 1 year forward</div></div>
+    <div class="time-filter" data-target="swa">
+      <span class="time-filter-label">Time Window:</span>
+      <button class="time-filter-btn active" data-bucket="all">All</button>
+      <button class="time-filter-btn" data-bucket="expired">Expired</button>
+      <button class="time-filter-btn" data-bucket="d30">Next 30d</button>
+      <button class="time-filter-btn" data-bucket="d90">31-90d</button>
+      <button class="time-filter-btn" data-bucket="d180">91-180d</button>
+      <button class="time-filter-btn" data-bucket="d365">181-365d</button>
+      <span class="time-filter-count" id="swa-count"></span>
+    </div>
+    <div id="swa-table"></div>
+  </div>
+</main>
+
+<script>
+// ==================== STATE ====================
+let DATA = null;
+let TABLES = {}; // hold tabulator refs
+let CURRENT_REP_SNAPSHOT = null; // populated by showRepDetail; consumed by emailRepCallSheet
+let CHARTS = {};
+
+const fmtMoney0 = (v) => {
+  if (v === null || v === undefined || v === '' || isNaN(v)) return '';
+  const n = Number(v);
+  if (n === 0) return '<span class="muted">—</span>';
+  return '$' + Math.round(n).toLocaleString();
+};
+const fmtMoneyShort = (v) => {
+  const n = Number(v) || 0;
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + Math.round(n);
+};
+const fmtNum = (v) => {
+  if (v === null || v === undefined || v === '' || isNaN(v)) return '';
+  return Number(v).toLocaleString();
+};
+
+const BUCKET_LABELS = {
+  expired: 'EXPIRED',
+  d30: '≤ 30 DAYS',
+  d90: '31-90 DAYS',
+  d180: '91-180 DAYS',
+  d365: '181-365 DAYS',
+  y2: '1-2 YEARS',
+  y2plus: '2+ YEARS',
+  unknown: 'UNKNOWN'
+};
+const BUCKET_ORDER = ['expired', 'd30', 'd90', 'd180', 'd365', 'y2', 'y2plus', 'unknown'];
+
+const bucketPill = (b) => {
+  const cls = `bucket-${b || 'unknown'}`;
+  const label = BUCKET_LABELS[b] || 'UNKNOWN';
+  return `<span class="bucket-pill ${cls}">${label}</span>`;
+};
+
+// ==================== CSV LOADER (browser-based) ====================
+// Mirror the logic that was in refresh.py — file matching, header skipping,
+// field mapping, date parsing, and time bucketing — all in the browser.
+
+const TODAY = new Date(); // user's current date
+TODAY.setHours(0,0,0,0);
+
+const FILE_PATTERNS = [
+  // Order matters: more specific patterns first
+  { id: 'sw_renew_auto',    keywords: ['software', 'renew', 'auto'] },
+  { id: 'sw_renew_opp',     keywords: ['software', 'renew'], excludes: ['auto'] },
+  { id: 'service_renew',    keywords: ['service', 'renew'] },
+  { id: 'service_attach',   keywords: ['service', 'attach'] },
+  { id: 'hardware_refresh', keywords: ['hardware', 'refresh'] },
+];
+const SOURCE_NAMES = {
+  service_renew: 'Service Renew',
+  service_attach: 'Service Attach',
+  hardware_refresh: 'Hardware Refresh',
+  sw_renew_auto: 'Software Renew (Auto)',
+  sw_renew_opp: 'Software Renew (Opp)',
+};
+
+function classifyFile(file) {
+  const name = file.name.toLowerCase();
+  for (const pattern of FILE_PATTERNS) {
+    const allMatch = pattern.keywords.every(k => name.includes(k));
+    const excluded = (pattern.excludes || []).some(k => name.includes(k));
+    if (allMatch && !excluded) return pattern.id;
+  }
+  return null;
+}
+
+function parseCiscoDate(v) {
+  if (!v || v === '' || v === 'UNKNOWN') return null;
+  // Cisco uses formats like "01-Jan-26", "06/02/2027", "31-Aug-27"
+  const trimmed = String(v).trim();
+  if (!trimmed) return null;
+  const d = new Date(trimmed);
+  if (isNaN(d.getTime())) return null;
+  // Reject silly dates like "01-Jan-00" (sentinel for "no real date")
+  if (d.getFullYear() < 2000 || d.getFullYear() > 2099) return null;
+  // 2000-01-01 specifically is used as a "no date" sentinel — treat as null
+  if (d.getFullYear() === 2000 && d.getMonth() === 0 && d.getDate() === 1) return null;
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function safeNum(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function safeStr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+function timeBucket(dateStr) {
+  if (!dateStr) return 'unknown';
+  const d = new Date(dateStr);
+  const days = Math.floor((d - TODAY) / 86400000);
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'd30';
+  if (days <= 90) return 'd90';
+  if (days <= 180) return 'd180';
+  if (days <= 365) return 'd365';
+  if (days <= 730) return 'y2';
+  return 'y2plus';
+}
+
+// Cisco PXP files have 6 metadata lines + 1 blank line, then the table header.
+// PapaParse can't natively skip lines, so we strip them from the text first.
+function stripPxpHeader(text) {
+  const lines = text.split(/\r?\n/);
+  // Find the first line that has many columns — that's the table header
+  // Should be line 8 (index 7) for standard PXP exports
+  for (let i = 6; i < Math.min(15, lines.length); i++) {
+    if (lines[i].split(',').length > 10) {
+      return lines.slice(i).join('\n');
+    }
+  }
+  // Fallback: skip first 7 lines
+  return lines.slice(7).join('\n');
+}
+
+function parseCSV(file, onProgress, rowFilter) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = stripPxpHeader(e.target.result);
+      // Use worker mode for big files so the UI stays responsive
+      const useWorker = file.size > 5 * 1024 * 1024;
+      const allRows = [];
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        worker: useWorker,
+        chunkSize: 1024 * 1024, // 1MB chunks
+        chunk: (results) => {
+          if (rowFilter) {
+            for (const row of results.data) {
+              if (rowFilter(row)) allRows.push(row);
+            }
+          } else {
+            for (const row of results.data) allRows.push(row);
+          }
+          if (onProgress) onProgress(allRows.length);
+        },
+        complete: () => resolve(allRows),
+        error: (err) => reject(err),
+      });
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+// ---- Per-source row mappers (one-to-one with refresh.py functions) ----
+
+function mapServiceRenew(rows) {
+  return rows.map(r => {
+    const endDate = parseCiscoDate(r['Item End Date']);
+    return {
+      customer: safeStr(r['Install-Site End Customer Name']),
+      state: safeStr(r['Install-Site State']),
+      city: safeStr(r['Install-Site City']),
+      endDate, beginDate: parseCiscoDate(r['Item Begin Date']),
+      bucket: timeBucket(endDate),
+      oppQuarter: safeStr(r['Opportunity Quarter']),
+      expQuarter: safeStr(r['Expiration Quarter']),
+      renewalStatus: safeStr(r['Adjusted Renewal Status']),
+      coverageStatus: safeStr(r['Covered Product Status']),
+      terminationReason: safeStr(r['Termination Reason']),
+      architecture: safeStr(r['Architecture']),
+      productFamily: safeStr(r['Product Family']),
+      itemName: safeStr(r['Item Name']),
+      itemDesc: safeStr(r['Item Description']),
+      serialNumber: safeStr(r['Serial Number']),
+      opp: safeNum(r['Adjusted Opportunity']),
+      qtrlyContract: safeNum(r['Quarterly Contract USD Value']),
+      contractNumber: safeStr(r['Contract Number']),
+      quoteNumber: safeStr(r['Quote Number']),
+      salesRep: safeStr(r['Partner Sales Rep']),
+      lob: safeStr(r['Partner Line of Business']),
+      territory: safeStr(r['Partner Territory']),
+      industry: safeStr(r['Industry']),
+    };
+  });
+}
+
+function mapServiceAttach(rows) {
+  return rows.map(r => ({
+    customer: safeStr(r['D_Install-Site End Customer Name']),
+    state: safeStr(r['D_Install-Site State']),
+    city: safeStr(r['D_Install-Site City']),
+    shipDate: parseCiscoDate(r['D_POS Tx Ship Date']),
+    coverageStatus: safeStr(r['Adjusted Coverage Status']),
+    architecture: safeStr(r['Architecture']),
+    productFamily: safeStr(r['D_Product Family']),
+    itemName: safeStr(r['D_Item Name']),
+    itemDesc: safeStr(r['D_Item Description']),
+    serialNumber: safeStr(r['D_Serial Number']),
+    qty: safeNum(r['Item Quantity']),
+    opp: safeNum(r['Adjusted Opportunity']),
+    quoteNumber: safeStr(r['Quote Number']),
+    territory: safeStr(r['Partner Territory']),
+    industry: safeStr(r['Industry']),
+    orderNumber: safeStr(r['D_Order Number']),
+  }));
+}
+
+// For HW Refresh, this filter is applied during streaming parse to avoid
+// holding 128K raw rows in memory when we'll only keep ~14% of them.
+function hwActionableFilter(r) {
+  const lastSupport = parseCiscoDate(r['Last Support Dt']);
+  const netPrice = safeNum(r['Product Net Price']);
+  const cutoff = new Date(TODAY);
+  cutoff.setDate(cutoff.getDate() + 365 * 3);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const todayStr = TODAY.toISOString().slice(0,10);
+  const inWindow = !lastSupport || lastSupport <= cutoffStr;
+  const actionable = netPrice > 0 || (lastSupport && lastSupport < todayStr);
+  return inWindow && actionable;
+}
+
+function mapHWRefresh(rows) {
+  // rows are already filtered by hwActionableFilter at parse time
+  return rows.map(r => {
+    const lastSupport = parseCiscoDate(r['Last Support Dt']);
+    return {
+      customer: safeStr(r['Install Site Gu Name']),
+      state: safeStr(r['Install Site State']),
+      city: safeStr(r['Install Site City']),
+      lastSupportDate: lastSupport,
+      contractEndDate: parseCiscoDate(r['Contract Line End Dt']),
+      shipDate: parseCiscoDate(r['Ship Date']),
+      bucket: timeBucket(lastSupport),
+      serviceStatus: safeStr(r['Service Status']),
+      architecture: safeStr(r['Architecture']),
+      productFamily: safeStr(r['Product Family']),
+      productId: safeStr(r['Product Id']),
+      productDesc: safeStr(r['Product Description']),
+      serialNumber: safeStr(r['Serial Number']),
+      instanceAge: safeNum(r['Instance Age Years']),
+      listPrice: safeNum(r['Product List Price']),
+      netPrice: safeNum(r['Product Net Price']),
+      contractNumber: safeStr(r['Service Contract Number']),
+      industry: safeStr(r['Industry']),
+      oppQuarter: safeStr(r['Opportunity Quarter']),
+    };
+  });
+}
+
+function mapSWRenew(rows) {
+  return rows.map(r => {
+    const endDate = parseCiscoDate(r['Item End Date']);
+    return {
+      customer: safeStr(r['Install-Site End Customer Name']),
+      state: safeStr(r['Install-Site State']),
+      city: safeStr(r['Install-Site City']),
+      endDate, beginDate: parseCiscoDate(r['Item Begin Date']),
+      bucket: timeBucket(endDate),
+      oppQuarter: safeStr(r['Opportunity Quarter']),
+      eaFlag: safeStr(r['EA Flag']),
+      eaDealId: safeStr(r['Product EA Deal ID']),
+      subOfferType: safeStr(r['Subscription Offer Type']),
+      architecture: safeStr(r['Architecture']),
+      productFamily: safeStr(r['Product Family']),
+      itemName: safeStr(r['Item Name']),
+      subscriptionDesc: safeStr(r['Subscription Description']),
+      qty: safeNum(r['Item Quantity']),
+      opp1Yr: safeNum(r['Opportunity (1 Yr List)']),
+      fullTermList: safeNum(r['Full Term List Price']),
+      contractNumber: safeStr(r['Contract Number']),
+      quoteNumber: safeStr(r['Quote Number']),
+      salesRep: safeStr(r['Partner Sales Rep']),
+      lob: safeStr(r['Partner Line of Business']),
+      industry: safeStr(r['Industry']),
+      autoRenewEligible: safeStr(r['Auto Renew Eligible']),
+    };
+  });
+}
+
+const MAPPERS = {
+  service_renew: mapServiceRenew,
+  service_attach: mapServiceAttach,
+  hardware_refresh: mapHWRefresh,
+  sw_renew_auto: mapSWRenew,
+  sw_renew_opp: mapSWRenew,
+};
+const ROW_FILTERS = {
+  hardware_refresh: hwActionableFilter,
+};
+const TARGET_KEYS = {
+  service_renew: 'serviceRenew',
+  service_attach: 'serviceAttach',
+  hardware_refresh: 'hardwareRefresh',
+  sw_renew_auto: 'swRenewAuto',
+  sw_renew_opp: 'swRenewOpp',
+};
+
+// ---- Dropzone state ----
+let SELECTED_FILES = {}; // sourceId -> File
+
+function renderDropzoneStatus() {
+  const status = document.getElementById('dropzone-status');
+  const actions = document.getElementById('dropzone-actions');
+  const order = ['service_renew', 'service_attach', 'hardware_refresh', 'sw_renew_opp', 'sw_renew_auto'];
+  let html = '';
+  let foundCount = 0;
+  for (const id of order) {
+    const f = SELECTED_FILES[id];
+    if (f) {
+      foundCount++;
+      html += `<div class="file-row ok">
+        <span><span class="marker">✓</span> ${SOURCE_NAMES[id]}</span>
+        <span class="file-rows">${f.name} · ${(f.size/1024/1024).toFixed(1)} MB</span>
+      </div>`;
+    } else {
+      html += `<div class="file-row miss">
+        <span><span class="marker">○</span> ${SOURCE_NAMES[id]}</span>
+        <span class="file-rows">missing</span>
+      </div>`;
+    }
+  }
+  status.innerHTML = html;
+  status.classList.add('active');
+  actions.style.display = foundCount > 0 ? 'flex' : 'none';
+  document.getElementById('process-btn').disabled = foundCount === 0;
+  document.getElementById('process-btn').textContent =
+    foundCount === 5 ? `Process All 5 Files` : `Process ${foundCount} File${foundCount===1?'':'s'} (${5-foundCount} missing)`;
+}
+
+function handleFiles(fileList) {
+  for (const f of fileList) {
+    if (!f.name.toLowerCase().endsWith('.csv')) continue;
+    const id = classifyFile(f);
+    if (id) SELECTED_FILES[id] = f;
+  }
+  renderDropzoneStatus();
+}
+
+async function processFiles() {
+  const ids = Object.keys(SELECTED_FILES);
+  if (!ids.length) return;
+
+  const progressEl = document.getElementById('dropzone-progress');
+  const barEl = document.getElementById('dropzone-progress-bar');
+  const actionsEl = document.getElementById('dropzone-actions');
+  progressEl.style.display = 'block';
+  actionsEl.style.display = 'none';
+
+  DATA = {
+    meta: {
+      generated: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      today: TODAY.toISOString().slice(0, 10),
+      partner: 'Cisco Partner',
+      sources: {},
+    },
+    serviceRenew: [], serviceAttach: [], hardwareRefresh: [],
+    swRenewAuto: [], swRenewOpp: [],
+  };
+
+  const status = document.getElementById('dropzone-status');
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const file = SELECTED_FILES[id];
+    const targetKey = TARGET_KEYS[id];
+
+    // Update status row to "processing"
+    const rows = status.querySelectorAll('.file-row');
+    rows.forEach(row => {
+      if (row.textContent.includes(SOURCE_NAMES[id])) {
+        row.querySelector('.file-rows').textContent = 'parsing…';
+      }
+    });
+
+    barEl.style.width = ((i / ids.length) * 100) + '%';
+    await new Promise(r => setTimeout(r, 50)); // let UI repaint
+
+    try {
+      const rawRows = await parseCSV(file, (count) => {
+        rows.forEach(row => {
+          if (row.textContent.includes(SOURCE_NAMES[id])) {
+            row.querySelector('.file-rows').textContent = count.toLocaleString() + ' rows parsed…';
+          }
+        });
+      }, ROW_FILTERS[id]);
+      const mapped = MAPPERS[id](rawRows);
+      DATA[targetKey] = mapped;
+      DATA.meta.sources[targetKey] = { file: file.name, rows: mapped.length };
+
+      rows.forEach(row => {
+        if (row.textContent.includes(SOURCE_NAMES[id])) {
+          row.querySelector('.file-rows').textContent = mapped.length.toLocaleString() + ' rows ✓';
+        }
+      });
+    } catch (err) {
+      rows.forEach(row => {
+        if (row.textContent.includes(SOURCE_NAMES[id])) {
+          row.querySelector('.file-rows').textContent = 'ERROR: ' + err.message;
+          row.classList.remove('ok');
+          row.classList.add('miss');
+        }
+      });
+      console.error('Failed parsing', id, err);
+    }
+  }
+
+  barEl.style.width = '100%';
+  await new Promise(r => setTimeout(r, 300));
+
+  // Universal time window: keep rows from 90 days in the past through 365 days
+  // in the future. Anything outside that window is treated as noise across every
+  // view (dashboard, customer 360, per-rep, EA, detail tables, charts).
+  // The original arrays are kept in DATA._raw_* in case we ever need them.
+  const cutoffPast = new Date(TODAY);
+  cutoffPast.setDate(cutoffPast.getDate() - 90);
+  const cutoffPastStr = cutoffPast.toISOString().slice(0, 10);
+  const cutoffFuture = new Date(TODAY);
+  cutoffFuture.setDate(cutoffFuture.getDate() + 365);
+  const cutoffFutureStr = cutoffFuture.toISOString().slice(0, 10);
+
+  const inWindow = (dateStr) => !dateStr || (dateStr >= cutoffPastStr && dateStr <= cutoffFutureStr);
+
+  DATA._raw_serviceRenew = DATA.serviceRenew;
+  DATA._raw_swRenewOpp = DATA.swRenewOpp;
+  DATA._raw_swRenewAuto = DATA.swRenewAuto;
+  DATA._raw_hardwareRefresh = DATA.hardwareRefresh;
+  DATA._raw_serviceAttach = DATA.serviceAttach;
+  DATA._cutoffPast = cutoffPastStr;
+  DATA._cutoffFuture = cutoffFutureStr;
+
+  // Apply to renewal-style tables (uses Item End Date)
+  DATA.serviceRenew = DATA.serviceRenew.filter(r => inWindow(r.endDate));
+  DATA.swRenewOpp = DATA.swRenewOpp.filter(r => inWindow(r.endDate));
+  DATA.swRenewAuto = DATA.swRenewAuto.filter(r => inWindow(r.endDate));
+  // Hardware Refresh: filter on Last Support Date (already past EoS up to 1 yr forward)
+  DATA.hardwareRefresh = DATA.hardwareRefresh.filter(r => inWindow(r.lastSupportDate));
+  // Service Attach: only show items shipped within the last 90 days. Older
+  // shipments are technically attachable but the closure rate drops sharply.
+  DATA.serviceAttach = DATA.serviceAttach.filter(r => r.shipDate && r.shipDate >= cutoffPastStr);
+
+  // Hide dropzone, show app
+  document.getElementById('dropzone-container').style.display = 'none';
+  document.getElementById('main-nav').style.display = 'block';
+  document.getElementById('reload-btn').style.display = 'inline-block';
+  init();
+}
+
+function resetToDropzone() {
+  // Reset everything and show the dropzone again
+  SELECTED_FILES = {};
+  DATA = null;
+  TABLES = {};
+  CURRENT_REP_SNAPSHOT = null;
+  // Destroy charts
+  Object.values(CHARTS).forEach(c => { try { c.destroy(); } catch(e){} });
+  CHARTS = {};
+
+  document.getElementById('dropzone-container').style.display = 'block';
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('reload-btn').style.display = 'none';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-dashboard').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const firstTab = document.querySelector('.tab-btn[data-view="dashboard"]');
+  if (firstTab) firstTab.classList.add('active');
+
+  // Reset dropzone UI
+  document.getElementById('dropzone-status').innerHTML = '';
+  document.getElementById('dropzone-status').classList.remove('active');
+  document.getElementById('dropzone-actions').style.display = 'none';
+  document.getElementById('dropzone-progress').style.display = 'none';
+  document.getElementById('dropzone-progress-bar').style.width = '0%';
+  document.getElementById('file-input').value = '';
+}
+
+function setupDropzone() {
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file-input');
+
+  dz.addEventListener('click', (e) => {
+    // Don't fire when clicking inside the status/actions areas
+    if (e.target.closest('button, .dropzone-status, .dropzone-progress, .dropzone-actions')) return;
+    input.click();
+  });
+
+  input.addEventListener('change', (e) => handleFiles(e.target.files));
+
+  dz.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dz.classList.add('drag-over');
+  });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // Prevent the page from navigating to a CSV if dropped outside the zone
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  document.getElementById('process-btn').addEventListener('click', processFiles);
+}
+
+// ==================== INIT ====================
+function init() {
+  // Meta header
+  // Partner name: load from localStorage if previously set, else use default.
+  // Click to edit. Persists across page reloads.
+  const savedPartner = (function() {
+    try { return localStorage.getItem('pxp.partnerName'); } catch (e) { return null; }
+  })();
+  if (savedPartner) DATA.meta.partner = savedPartner;
+  const partnerEl = document.getElementById('meta-partner');
+  partnerEl.textContent = DATA.meta.partner || 'Cisco Partner';
+  partnerEl.onclick = () => {
+    const current = DATA.meta.partner || '';
+    const next = prompt('Partner name:', current);
+    if (next !== null) {
+      const trimmed = next.trim();
+      DATA.meta.partner = trimmed || 'Cisco Partner';
+      partnerEl.textContent = DATA.meta.partner;
+      try { localStorage.setItem('pxp.partnerName', DATA.meta.partner); } catch (e) {}
+    }
+  };
+  document.getElementById('meta-generated').textContent = DATA.meta.generated.replace('T', ' ').slice(0, 16);
+  document.getElementById('meta-today').textContent = DATA.meta.today;
+  const totalRows = DATA.serviceRenew.length + DATA.serviceAttach.length +
+                    DATA.hardwareRefresh.length + DATA.swRenewAuto.length + DATA.swRenewOpp.length;
+  document.getElementById('meta-rows').textContent = totalRows.toLocaleString();
+
+  // Badges (DATA is already 90-day-filtered for SR, SW renew, and SW auto-renew)
+  document.getElementById('b-sr').textContent = DATA.serviceRenew.length.toLocaleString();
+  document.getElementById('b-sa').textContent = DATA.serviceAttach.length.toLocaleString();
+  document.getElementById('b-hw').textContent = DATA.hardwareRefresh.length.toLocaleString();
+  document.getElementById('b-sw').textContent = DATA.swRenewOpp.length.toLocaleString();
+  document.getElementById('b-swa').textContent = DATA.swRenewAuto.length.toLocaleString();
+
+  // Tab switching
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('tab-btn')) return;
+    const view = e.target.dataset.view;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById('view-' + view).classList.add('active');
+
+    // Lazy build views
+    if (!TABLES[view]) buildView(view);
+  });
+
+  // First view
+  document.getElementById('view-dashboard').classList.add('active');
+  buildView('dashboard');
+}
+
+// ==================== NAVIGATION HELPERS ====================
+// Switch to Customer 360 view and load the named customer.
+// Used when clicking a customer row on the dashboard.
+function jumpToCustomer(custName) {
+  if (!custName) return;
+
+  // Activate the Customer 360 tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const tabBtn = document.querySelector('.tab-btn[data-view="customer360"]');
+  if (tabBtn) tabBtn.classList.add('active');
+  const view = document.getElementById('view-customer360');
+  if (view) view.classList.add('active');
+
+  // Build the view if it hasn't been built yet
+  if (!TABLES.customer360) {
+    buildView('customer360');
+  }
+
+  // Pre-fill the search box and show the customer's detail.
+  // We defer slightly to ensure the DOM is ready in case buildView did heavy work.
+  setTimeout(() => {
+    const searchInput = document.getElementById('cust-search');
+    if (searchInput) searchInput.value = custName;
+    showCustomerDetail(custName);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 0);
+}
+
+// ==================== AGGREGATIONS ====================
+
+// Build a Tabulator headerFilterParams "values" map from a dataset, with an
+// explicit "(All)" option at the top so the user can always clear the filter.
+// Tabulator's built-in clearable:true puts the clear option inside the open
+// dropdown which is hard to discover — this approach makes "All" the first
+// item, which is the convention people expect.
+function listFilterValues(dataArr, field) {
+  const set = new Set();
+  for (const r of dataArr) {
+    const v = r && r[field];
+    if (v && String(v).trim()) set.add(String(v).trim());
+  }
+  const sorted = [...set].sort();
+  const out = { '': '— All —' };
+  for (const v of sorted) out[v] = v;
+  return out;
+}
+
+// Walk column defs and replace any `valuesLookup: true` list filter with an
+// explicit values map computed from the supplied data. This guarantees that
+// every list filter has an "(All)" option at the top, which users can pick to
+// clear the filter — far more discoverable than Tabulator's hover-X clear.
+function attachAllOption(columns, data) {
+  for (const col of columns) {
+    if (col.headerFilter === 'list' && col.headerFilterParams && col.headerFilterParams.valuesLookup) {
+      col.headerFilterParams = {
+        ...col.headerFilterParams,
+        valuesLookup: false,
+        values: listFilterValues(data, col.field),
+      };
+    }
+  }
+  return columns;
+}
+function sumBy(arr, key) {
+  return arr.reduce((s, r) => s + (Number(r[key]) || 0), 0);
+}
+
+function groupBy(arr, keyFn) {
+  const g = {};
+  arr.forEach(r => {
+    const k = keyFn(r);
+    if (!g[k]) g[k] = [];
+    g[k].push(r);
+  });
+  return g;
+}
+
+function customerTotals() {
+  const totals = {};
+  const add = (cust, src, val) => {
+    if (!cust) cust = '(unspecified)';
+    if (!totals[cust]) totals[cust] = { customer: cust, sr: 0, sa: 0, hw: 0, swa: 0, swo: 0 };
+    totals[cust][src] += Number(val) || 0;
+  };
+  DATA.serviceRenew.forEach(r => add(r.customer, 'sr', r.opp));
+  DATA.serviceAttach.forEach(r => add(r.customer, 'sa', r.opp));
+  DATA.hardwareRefresh.forEach(r => add(r.customer, 'hw', r.netPrice));
+  DATA.swRenewAuto.forEach(r => add(r.customer, 'swa', r.opp1Yr));
+  DATA.swRenewOpp.forEach(r => add(r.customer, 'swo', r.opp1Yr));
+  Object.values(totals).forEach(v => v.total = v.sr + v.sa + v.hw + v.swa + v.swo);
+  return Object.values(totals).sort((a,b) => b.total - a.total);
+}
+
+// ==================== KPI BUILDER ====================
+function kpi(label, value, sub, cls) {
+  return `<div class="kpi ${cls || ''}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value">${value}</div>
+    ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+// ==================== VIEW BUILDERS ====================
+function buildView(view) {
+  const builders = {
+    dashboard: buildDashboard,
+    quarterly: buildQuarterly,
+    reps: buildReps,
+    customer360: buildCustomer360,
+    ea: buildEA,
+    hwfamily: buildHWFamily,
+    'service-renew': buildServiceRenew,
+    'service-attach': buildServiceAttach,
+    'hw-refresh': buildHWRefresh,
+    'sw-renew': buildSWRenew,
+    'sw-auto': buildSWAuto,
+  };
+  if (builders[view]) {
+    builders[view]();
+    TABLES[view] = true; // mark built
+  }
+}
+
+// -------- DASHBOARD --------
+function buildDashboard() {
+  // KPIs
+  const sr_total = sumBy(DATA.serviceRenew, 'opp');
+  const sa_total = sumBy(DATA.serviceAttach, 'opp');
+  const hw_total = sumBy(DATA.hardwareRefresh, 'netPrice');
+  const swo_total = sumBy(DATA.swRenewOpp, 'opp1Yr');
+  const swa_total = sumBy(DATA.swRenewAuto, 'opp1Yr');
+  const grand = sr_total + sa_total + hw_total + swo_total + swa_total;
+
+  document.getElementById('dashboard-kpis').innerHTML = [
+    kpi('Total Opportunity', fmtMoneyShort(grand), 'across all 5 reports', 'kpi-info'),
+    kpi('Service Renew', fmtMoneyShort(sr_total), DATA.serviceRenew.length.toLocaleString() + ' lines'),
+    kpi('Service Attach', fmtMoneyShort(sa_total), DATA.serviceAttach.length.toLocaleString() + ' lines'),
+    kpi('HW Refresh (Net)', fmtMoneyShort(hw_total), DATA.hardwareRefresh.length.toLocaleString() + ' items'),
+    kpi('SW Renew', fmtMoneyShort(swo_total), DATA.swRenewOpp.length.toLocaleString() + ' lines'),
+    kpi('SW Auto-Renew', fmtMoneyShort(swa_total), DATA.swRenewAuto.length.toLocaleString() + ' lines'),
+  ].join('');
+
+  // Priority table — buckets are MUTUALLY EXCLUSIVE so each source partitions
+  // cleanly and the rows for a given source sum to the ribbon total above.
+  // (Previously, "ACTIVE & NOT_RENEWED" overlapped with the time buckets,
+  // which made the priority numbers appear inflated relative to the totals.)
+
+  // Service Renew — partition by time bucket
+  const sr_expired = DATA.serviceRenew.filter(r => r.bucket === 'expired');
+  const sr_30 = DATA.serviceRenew.filter(r => r.bucket === 'd30');
+  const sr_90 = DATA.serviceRenew.filter(r => r.bucket === 'd90');
+  const sr_180plus = DATA.serviceRenew.filter(r => r.bucket === 'd180' || r.bucket === 'd365' || r.bucket === 'unknown');
+
+  // Software Renew — partition by time bucket
+  const swo_expired = DATA.swRenewOpp.filter(r => r.bucket === 'expired');
+  const swo_30 = DATA.swRenewOpp.filter(r => r.bucket === 'd30');
+  const swo_90 = DATA.swRenewOpp.filter(r => r.bucket === 'd90');
+  const swo_180plus = DATA.swRenewOpp.filter(r => r.bucket === 'd180' || r.bucket === 'd365' || r.bucket === 'unknown');
+
+  // Hardware Refresh — partition by support window
+  const hw_eos = DATA.hardwareRefresh.filter(r => r.bucket === 'expired');
+  const hw_imminent = DATA.hardwareRefresh.filter(r => r.bucket === 'd30' || r.bucket === 'd90');
+  const hw_year = DATA.hardwareRefresh.filter(r => r.bucket === 'd180' || r.bucket === 'd365' || r.bucket === 'unknown');
+
+  // Service Attach — single row (already filtered to last 90 days of shipments)
+  const sa_all = DATA.serviceAttach;
+
+  const priorities = [
+    { name: 'Service Renew — Already Expired (within 90 days)', val: sumBy(sr_expired, 'opp'), n: sr_expired.length, why: 'Past expiration. Many in grace period. Highest urgency.', cls: 'row-expired' },
+    { name: 'Service Renew — Next 30 Days', val: sumBy(sr_30, 'opp'), n: sr_30.length, why: 'Imminent expirations. Get quotes out this week.', cls: 'row-urgent' },
+    { name: 'Service Renew — 31–90 Days', val: sumBy(sr_90, 'opp'), n: sr_90.length, why: 'Active quote-build window for clean renewals.', cls: 'row-urgent' },
+    { name: 'Service Renew — 91–365 Days', val: sumBy(sr_180plus, 'opp'), n: sr_180plus.length, why: 'On the horizon — confirm renewal intent and pricing.', cls: '' },
+    { name: 'Software — Already Expired (within 90 days)', val: sumBy(swo_expired, 'opp1Yr'), n: swo_expired.length, why: 'Past end date — customers may be running unlicensed.', cls: 'row-expired' },
+    { name: 'Software — Next 30 Days', val: sumBy(swo_30, 'opp1Yr'), n: swo_30.length, why: 'About to lapse — close out renewal now.', cls: 'row-urgent' },
+    { name: 'Software — 31–90 Days', val: sumBy(swo_90, 'opp1Yr'), n: swo_90.length, why: 'Standard quote-build window.', cls: 'row-urgent' },
+    { name: 'Software — 91–365 Days', val: sumBy(swo_180plus, 'opp1Yr'), n: swo_180plus.length, why: 'Forward pipeline — qualify and pre-quote.', cls: '' },
+    { name: 'Hardware — Past End of Support (within 90 days)', val: sumBy(hw_eos, 'netPrice'), n: hw_eos.length, why: 'Past Last Support Date — refresh conversations.', cls: 'row-expired' },
+    { name: 'Hardware — EoS in next 90 days', val: sumBy(hw_imminent, 'netPrice'), n: hw_imminent.length, why: 'Imminent EoS — start refresh planning now.', cls: 'row-urgent' },
+    { name: 'Hardware — EoS in 91–365 days', val: sumBy(hw_year, 'netPrice'), n: hw_year.length, why: 'Refresh roadmap — plan budgets and quotes.', cls: '' },
+    { name: 'Service Attach — Last 90 Days Shipments', val: sumBy(sa_all, 'opp'), n: sa_all.length, why: 'Recently shipped HW — net-new attach window.', cls: '' },
+  ];
+  document.getElementById('priority-tbody').innerHTML = priorities.map(p => `
+    <tr class="${p.cls}" style="border-bottom: 1px solid var(--line);">
+      <td style="padding: 11px 14px; font-weight: 500;">${p.name}</td>
+      <td style="padding: 11px 14px; text-align: right; font-family: var(--font-mono); color: var(--accent); font-weight: 600;">${fmtMoneyShort(p.val)}</td>
+      <td style="padding: 11px 14px; text-align: right; font-family: var(--font-mono); color: var(--text-1);">${p.n.toLocaleString()}</td>
+      <td style="padding: 11px 14px; color: var(--text-0); font-size: 14px;">${p.why}</td>
+    </tr>
+  `).join('');
+
+  // Bucket chart
+  buildBucketChart();
+  // Top customers chart
+  buildTopCustomersChart();
+  // Top customers table
+  const totals = customerTotals().slice(0, 25);
+  TABLES._dashboard_top = new Tabulator('#top-customers-table', {
+    data: totals,
+    layout: 'fitColumns',
+    height: 600,
+    columns: [
+      { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 250,
+        formatter: c => `<b>${c.getValue()}</b> <span style="color: var(--accent); font-size: 11px; margin-left: 6px;">→</span>`,
+        cellClick: (e, cell) => {
+          if (e.target.tagName === 'INPUT') return;
+          const cust = cell.getRow().getData().customer;
+          if (cust) jumpToCustomer(cust);
+        },
+        cssClass: 'clickable-cell',
+      },
+      { title: 'Total $', field: 'total', formatter: cell => `<span class="money-cell">${fmtMoney0(cell.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 130 },
+      { title: 'Service Renew', field: 'sr', formatter: cell => fmtMoney0(cell.getValue()), hozAlign: 'right', sorter: 'number', width: 130, cssClass: 'mono' },
+      { title: 'Service Attach', field: 'sa', formatter: cell => fmtMoney0(cell.getValue()), hozAlign: 'right', sorter: 'number', width: 130, cssClass: 'mono' },
+      { title: 'HW Refresh', field: 'hw', formatter: cell => fmtMoney0(cell.getValue()), hozAlign: 'right', sorter: 'number', width: 130, cssClass: 'mono' },
+      { title: 'SW Renew', field: 'swo', formatter: cell => fmtMoney0(cell.getValue()), hozAlign: 'right', sorter: 'number', width: 130, cssClass: 'mono' },
+      { title: 'SW Auto', field: 'swa', formatter: cell => fmtMoney0(cell.getValue()), hozAlign: 'right', sorter: 'number', width: 110, cssClass: 'mono' },
+    ],
+  });
+  // Belt-and-suspenders: also wire rowClick via .on() in case the inline handler misbehaves
+  TABLES._dashboard_top.on('rowClick', (e, row) => {
+    if (e.target.tagName === 'INPUT') return;
+    const cust = row.getData().customer;
+    if (cust) jumpToCustomer(cust);
+  });
+}
+
+function buildBucketChart() {
+  const sources = [
+    { name: 'Service Renew', data: DATA.serviceRenew, valKey: 'opp', color: '#ffb800' },
+    { name: 'SW Renew', data: DATA.swRenewOpp, valKey: 'opp1Yr', color: '#60a5fa' },
+    { name: 'HW Refresh', data: DATA.hardwareRefresh, valKey: 'netPrice', color: '#c084fc' },
+    { name: 'SW Auto', data: DATA.swRenewAuto, valKey: 'opp1Yr', color: '#4ade80' },
+  ];
+  // Only show buckets that fall within the active 90-back / 365-forward window.
+  // y2 and y2plus are now empty by design.
+  const visibleBuckets = ['expired', 'd30', 'd90', 'd180', 'd365'];
+  const labels = visibleBuckets.map(b => BUCKET_LABELS[b]);
+  const datasets = sources.map(s => ({
+    label: s.name,
+    data: visibleBuckets.map(b =>
+      s.data.filter(r => r.bucket === b).reduce((sum, r) => sum + (Number(r[s.valKey])||0), 0)
+    ),
+    backgroundColor: s.color,
+    borderRadius: 2,
+  }));
+
+  const ctx = document.getElementById('chart-buckets');
+  if (CHARTS.buckets) CHARTS.buckets.destroy();
+  CHARTS.buckets = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } } },
+        tooltip: {
+          callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtMoneyShort(ctx.parsed.y) }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#c8d1de', font: { family: 'IBM Plex Mono', size: 12 } }, grid: { color: '#2a3340' } },
+        y: { stacked: true, ticks: { color: '#c8d1de', font: { family: 'IBM Plex Mono', size: 12 }, callback: v => fmtMoneyShort(v) }, grid: { color: '#2a3340' } }
+      }
+    }
+  });
+}
+
+function buildTopCustomersChart() {
+  const totals = customerTotals().slice(0, 10);
+  const ctx = document.getElementById('chart-customers');
+  if (CHARTS.customers) CHARTS.customers.destroy();
+  CHARTS.customers = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: totals.map(t => t.customer.length > 32 ? t.customer.slice(0,30) + '…' : t.customer),
+      datasets: [
+        { label: 'SR', data: totals.map(t => t.sr), backgroundColor: '#ffb800' },
+        { label: 'SA', data: totals.map(t => t.sa), backgroundColor: '#fb923c' },
+        { label: 'HW', data: totals.map(t => t.hw), backgroundColor: '#c084fc' },
+        { label: 'SW Renew', data: totals.map(t => t.swo), backgroundColor: '#60a5fa' },
+        { label: 'SW Auto', data: totals.map(t => t.swa), backgroundColor: '#4ade80' },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtMoneyShort(ctx.parsed.x) } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#c8d1de', font: { family: 'IBM Plex Mono', size: 12 }, callback: v => fmtMoneyShort(v) }, grid: { color: '#2a3340' } },
+        y: { stacked: true, ticks: { color: '#e4ecf5', font: { family: 'IBM Plex Sans', size: 12 } }, grid: { color: '#2a3340' } }
+      }
+    }
+  });
+}
+
+// -------- QUARTERLY --------
+function buildQuarterly() {
+  const qSet = new Set();
+  const qData = {}; // q -> {sr, srN, sw, swN, hw, hwN, swa, swaN}
+  const ensureQ = (q) => {
+    if (!qData[q]) qData[q] = { quarter: q, sr: 0, srN: 0, sw: 0, swN: 0, hw: 0, hwN: 0, swa: 0, swaN: 0 };
+    qSet.add(q);
+  };
+  DATA.serviceRenew.forEach(r => {
+    if (r.oppQuarter) { ensureQ(r.oppQuarter); qData[r.oppQuarter].sr += (Number(r.opp)||0); qData[r.oppQuarter].srN += 1; }
+  });
+  DATA.swRenewOpp.forEach(r => {
+    if (r.oppQuarter) { ensureQ(r.oppQuarter); qData[r.oppQuarter].sw += (Number(r.opp1Yr)||0); qData[r.oppQuarter].swN += 1; }
+  });
+  DATA.hardwareRefresh.forEach(r => {
+    if (r.oppQuarter) { ensureQ(r.oppQuarter); qData[r.oppQuarter].hw += (Number(r.netPrice)||0); qData[r.oppQuarter].hwN += 1; }
+  });
+  DATA.swRenewAuto.forEach(r => {
+    if (r.oppQuarter) { ensureQ(r.oppQuarter); qData[r.oppQuarter].swa += (Number(r.opp1Yr)||0); qData[r.oppQuarter].swaN += 1; }
+  });
+
+  // Sort chronologically: by fiscal year first, then by quarter number.
+  // Plain .sort() would put "Q1 FY2026" before "Q1 FY2027" before "Q2 FY2026" (quarter-major).
+  // We want FY-major: all of FY2026 (Q1..Q4), then all of FY2027 (Q1..Q4).
+  const quarterSortKey = (q) => {
+    const m = q.match(/Q(\d)\s*FY?\s*(\d{4})/i);
+    if (!m) return [9999, 9, q]; // unknown formats sort to the end
+    const qNum = parseInt(m[1], 10);
+    const yr   = parseInt(m[2], 10);
+    return [yr, qNum, q];
+  };
+
+  // Cisco fiscal quarters end on (approximately) the last day of:
+  //   Q1 FY{N} -> Oct of year {N-1}
+  //   Q2 FY{N} -> Jan of year {N}
+  //   Q3 FY{N} -> Apr of year {N}
+  //   Q4 FY{N} -> Jul of year {N}
+  // A quarter is "stale" if its end-of-quarter date is more than 90 days in the past.
+  // We use 90 days (not just "before today") to match the rest of the app's actionable
+  // window — recently-expired renewals are still being worked, so the quarter that
+  // just ended should remain visible until its lines age out of the 90-day window.
+  // (Cisco's actual fiscal quarter-ends shift a few days year-to-year because they end
+  // on the Saturday closest to the month-end, but month-end precision is plenty here.)
+  const STALE_CUTOFF = new Date(TODAY);
+  STALE_CUTOFF.setDate(STALE_CUTOFF.getDate() - 90);
+  const isStaleQuarter = (q) => {
+    const m = q.match(/Q(\d)\s*FY?\s*(\d{4})/i);
+    if (!m) return false; // unknown format -> keep, don't silently drop
+    const qNum = parseInt(m[1], 10);
+    const fy   = parseInt(m[2], 10);
+    // Last day of fiscal quarter (month is 0-indexed; day 0 of next month = last day of target month)
+    let qEnd;
+    if (qNum === 1) qEnd = new Date(fy - 1, 10, 0); // Oct 31, fy-1
+    else if (qNum === 2) qEnd = new Date(fy,     1, 0); // Jan 31, fy
+    else if (qNum === 3) qEnd = new Date(fy,     4, 0); // Apr 30, fy
+    else if (qNum === 4) qEnd = new Date(fy,     7, 0); // Jul 31, fy
+    else return false;
+    return qEnd < STALE_CUTOFF;
+  };
+
+  const sortedQ = [...qSet]
+    .filter(q => q && q !== 'UNKNOWN')
+    .filter(q => !isStaleQuarter(q))   // hide quarters that ended >90 days ago
+    .sort((a, b) => {
+      const ka = quarterSortKey(a), kb = quarterSortKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0]; // year
+      if (ka[1] !== kb[1]) return ka[1] - kb[1]; // quarter
+      return 0;
+    });
+  const rows = sortedQ.map(q => ({
+    ...qData[q],
+    total: qData[q].sr + qData[q].sw + qData[q].hw + qData[q].swa,
+    totalN: qData[q].srN + qData[q].swN + qData[q].hwN + qData[q].swaN,
+  }));
+
+  const ctx = document.getElementById('chart-quarterly');
+  if (CHARTS.quarterly) CHARTS.quarterly.destroy();
+  CHARTS.quarterly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sortedQ,
+      datasets: [
+        { label: 'Service Renew',   data: rows.map(r => r.sr),  backgroundColor: '#ffb800', borderRadius: 2 },
+        { label: 'Software Renew',  data: rows.map(r => r.sw),  backgroundColor: '#60a5fa', borderRadius: 2 },
+        { label: 'HW Refresh',      data: rows.map(r => r.hw),  backgroundColor: '#c084fc', borderRadius: 2 },
+        { label: 'SW Auto-Renew',   data: rows.map(r => r.swa), backgroundColor: '#4ade80', borderRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtMoneyShort(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 }, callback: v => fmtMoneyShort(v) }, grid: { color: '#2a3340' } }
+      }
+    }
+  });
+
+  TABLES._quarterly = new Tabulator('#quarterly-table', {
+    data: rows,
+    layout: 'fitColumns',
+    height: 420,
+    columns: [
+      { title: 'Quarter', field: 'quarter', formatter: c => `<b class="mono">${c.getValue()}</b>`, width: 110 },
+      { title: 'Service Renew $', field: 'sr', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'SR Lines', field: 'srN', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono', width: 90 },
+      { title: 'SW Renew $', field: 'sw', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'SW Lines', field: 'swN', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono', width: 90 },
+      { title: 'HW Refresh $', field: 'hw', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'HW Lines', field: 'hwN', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono', width: 90 },
+      { title: 'SW Auto $', field: 'swa', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'SW Auto Lines', field: 'swaN', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono', width: 110 },
+      { title: 'Total $', field: 'total', formatter: c => `<span class="money-cell" style="font-weight:600;">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+    ]
+  });
+}
+
+// -------- REPS --------
+
+// Build a plain-text email body summarizing the current rep's call sheet,
+// then open the user's default email client via mailto:. The PDF doesn't
+// auto-attach (browsers don't allow that) — the email body reminds the user
+// to attach the PDF they generated via Print → Save PDF.
+function emailRepCallSheet() {
+  if (!CURRENT_REP_SNAPSHOT) {
+    alert('Pick a rep first.');
+    return;
+  }
+  const s = CURRENT_REP_SNAPSHOT;
+  const partner = (DATA.meta.partner || 'Cisco Partner');
+  const today = DATA.meta.today;
+
+  // Top 5 customers by combined opportunity within this rep's book
+  const byCust = {};
+  const add = (cust, amt) => {
+    if (!cust) return;
+    byCust[cust] = (byCust[cust] || 0) + (Number(amt) || 0);
+  };
+  s.sr_lines.forEach(r => add(r.customer, r.opp));
+  s.sw_lines.forEach(r => add(r.customer, r.opp1Yr));
+  s.hw_lines.forEach(r => add(r.customer, r.netPrice));
+  s.sa_lines.forEach(r => add(r.customer, r.opp));
+  const topCust = Object.entries(byCust)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // Urgency callouts
+  const sr_expired_n = s.sr_lines.filter(r => r.bucket === 'expired').length;
+  const sr_30_n = s.sr_lines.filter(r => r.bucket === 'd30').length;
+  const sw_expired_n = s.sw_lines.filter(r => r.bucket === 'expired').length;
+  const sw_30_n = s.sw_lines.filter(r => r.bucket === 'd30').length;
+  const hw_eos_n = s.hw_lines.filter(r => r.bucket === 'expired').length;
+
+  // Subject line
+  const subject = `Cisco PXP Call Sheet — ${s.rep} — ${today}`;
+
+  // Body — plain text, designed to read cleanly in any email client
+  const lines = [];
+  lines.push(`Hi ${s.rep.split(' ')[0] || 'there'},`);
+  lines.push('');
+  lines.push(`Here's a snapshot of your Cisco PXP opportunity book as of ${today}.`);
+  lines.push(`The full call sheet PDF is attached.`);
+  lines.push('');
+  lines.push('--- BOOK SUMMARY ----------------------------------------');
+  lines.push(`Total opportunity:      ${fmtMoneyShort(s.grand_total)}`);
+  lines.push(`Customers in book:      ${s.customers.length}`);
+  lines.push(`Total open lines:       ${s.total_lines.toLocaleString()}`);
+  lines.push('');
+  lines.push('--- BY SOURCE -------------------------------------------');
+  lines.push(`Service Renew (SmartNet):  ${fmtMoneyShort(s.summary.sr_total).padStart(8)}   (${s.summary.sr_count.toLocaleString()} lines)`);
+  lines.push(`Software Renew:            ${fmtMoneyShort(s.summary.sw_total).padStart(8)}   (${s.summary.sw_count.toLocaleString()} lines)`);
+  lines.push(`Hardware Refresh:          ${fmtMoneyShort(s.hw_total).padStart(8)}   (${s.hw_lines.length.toLocaleString()} items)`);
+  lines.push(`Service Attach (uncov.):   ${fmtMoneyShort(s.sa_total).padStart(8)}   (${s.sa_lines.length.toLocaleString()} items)`);
+  lines.push('');
+  lines.push('--- IMMEDIATE ACTION (within 90 days) -------------------');
+  if (sr_expired_n) lines.push(`  - Service Renew already expired:    ${sr_expired_n} line${sr_expired_n === 1 ? '' : 's'}  ${fmtMoneyShort(s.summary.sr_expired)}`);
+  if (sr_30_n)      lines.push(`  - Service Renew expiring next 30d:  ${sr_30_n} line${sr_30_n === 1 ? '' : 's'}`);
+  if (sw_expired_n) lines.push(`  - Software already expired:         ${sw_expired_n} line${sw_expired_n === 1 ? '' : 's'}`);
+  if (sw_30_n)      lines.push(`  - Software expiring next 30d:       ${sw_30_n} line${sw_30_n === 1 ? '' : 's'}`);
+  if (hw_eos_n)     lines.push(`  - Hardware past End-of-Support:     ${hw_eos_n} item${hw_eos_n === 1 ? '' : 's'}`);
+  if (!sr_expired_n && !sr_30_n && !sw_expired_n && !sw_30_n && !hw_eos_n) {
+    lines.push('  No immediate action items in your book — nice.');
+  }
+  lines.push('');
+  lines.push('--- TOP 5 CUSTOMERS BY OPPORTUNITY ----------------------');
+  topCust.forEach(([cust, amt], i) => {
+    lines.push(`  ${i + 1}. ${cust}  —  ${fmtMoneyShort(amt)}`);
+  });
+  lines.push('');
+  lines.push('Detail and per-line breakdown is in the attached PDF.');
+  lines.push('Reach out with questions.');
+  lines.push('');
+  lines.push(`— Cisco PXP Console (${partner})`);
+  lines.push(`  Generated ${today}`);
+  const body = lines.join('\n');
+
+  // Build mailto URL. To: left blank — user types the rep's email.
+  const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  // Some email clients (notably Outlook) cap the mailto URL length around
+  // 2000 characters. If we exceed that, fall back to a generated text file
+  // the user can paste into their email manually.
+  if (url.length > 1900) {
+    // Show a short alert and copy the body to the clipboard if available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`).then(() => {
+        alert('The email body was too long for a direct mailto link, so I copied the full text (subject + body) to your clipboard. Open your email client, create a new message, and paste.');
+      }, () => {
+        // If clipboard write failed, just open mailto with truncated body
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.slice(0, 1500) + '\n\n[truncated — see attached PDF]')}`;
+      });
+    } else {
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.slice(0, 1500) + '\n\n[truncated — see attached PDF]')}`;
+    }
+  } else {
+    window.location.href = url;
+  }
+}
+
+function buildReps() {
+  const repSet = new Set();
+  const repData = {};
+  const upd = (rep, sr, val) => {
+    if (!rep || rep === 'UNKNOWN') rep = '(Unassigned)';
+    repSet.add(rep);
+    if (!repData[rep]) repData[rep] = { rep, sr_total: 0, sr_count: 0, sr_expired: 0, sr_90: 0, sw_total: 0, sw_count: 0 };
+    if (sr === 'sr') {
+      repData[rep].sr_total += val;
+      repData[rep].sr_count += 1;
+    } else {
+      repData[rep].sw_total += val;
+      repData[rep].sw_count += 1;
+    }
+  };
+  DATA.serviceRenew.forEach(r => {
+    upd(r.salesRep, 'sr', Number(r.opp)||0);
+    const rep = r.salesRep || '(Unassigned)';
+    if (r.bucket === 'expired') repData[rep] && (repData[rep].sr_expired += Number(r.opp)||0);
+    if (r.bucket === 'd30' || r.bucket === 'd90') repData[rep] && (repData[rep].sr_90 += Number(r.opp)||0);
+  });
+  DATA.swRenewOpp.forEach(r => upd(r.salesRep, 'sw', Number(r.opp1Yr)||0));
+
+  const sortedReps = [...repSet].sort((a,b) => (repData[b].sr_total + repData[b].sw_total) - (repData[a].sr_total + repData[a].sw_total));
+  const picker = document.getElementById('rep-picker');
+  picker.innerHTML = '<option value="">— Choose a rep —</option>' +
+    sortedReps.map(r => `<option value="${r}">${r} · ${fmtMoneyShort(repData[r].sr_total + repData[r].sw_total)}</option>`).join('');
+
+  picker.addEventListener('change', () => {
+    const rep = picker.value;
+    if (!rep) {
+      document.getElementById('rep-detail').style.display = 'none';
+      document.getElementById('rep-email-btn').style.display = 'none';
+      CURRENT_REP_SNAPSHOT = null;
+      return;
+    }
+    showRepDetail(rep, repData[rep]);
+  });
+}
+
+function showRepDetail(rep, summary) {
+  document.getElementById('rep-detail').style.display = 'block';
+  document.getElementById('rep-email-btn').style.display = 'inline-block';
+
+  // Direct lines (have a sales rep field on them)
+  const sr_lines = DATA.serviceRenew.filter(r => (r.salesRep || '(Unassigned)') === rep && (r.opp || 0) > 0);
+  const sw_lines = DATA.swRenewOpp.filter(r => (r.salesRep || '(Unassigned)') === rep && (r.opp1Yr || 0) > 0);
+
+  // Build the set of customers this rep "owns" via SR + SW
+  const repCustomers = new Set();
+  sr_lines.forEach(r => { if (r.customer) repCustomers.add(r.customer); });
+  sw_lines.forEach(r => { if (r.customer) repCustomers.add(r.customer); });
+
+  // Pull HW Refresh and Service Attach lines for those customers
+  const hw_lines = DATA.hardwareRefresh.filter(r => repCustomers.has(r.customer));
+  const sa_lines = DATA.serviceAttach.filter(r =>
+    repCustomers.has(r.customer) && r.coverageStatus === 'UNCOVERED' && (r.opp || 0) > 0
+  );
+
+  // Sort each by urgency
+  sr_lines.sort((a,b) => (a.endDate || 'z').localeCompare(b.endDate || 'z'));
+  sw_lines.sort((a,b) => (a.endDate || 'z').localeCompare(b.endDate || 'z'));
+  hw_lines.sort((a,b) => (a.lastSupportDate || 'z').localeCompare(b.lastSupportDate || 'z'));
+  sa_lines.sort((a,b) => (b.shipDate || '').localeCompare(a.shipDate || ''));
+
+  // Totals
+  const hw_total = hw_lines.reduce((s,r) => s + (r.netPrice || 0), 0);
+  const sa_total = sa_lines.reduce((s,r) => s + (r.opp || 0), 0);
+  const grand_total = summary.sr_total + summary.sw_total + hw_total + sa_total;
+  const total_lines = sr_lines.length + sw_lines.length + hw_lines.length + sa_lines.length;
+
+  // Stash for the email handler — captures everything needed to compose the message
+  CURRENT_REP_SNAPSHOT = {
+    rep, summary,
+    sr_lines, sw_lines, hw_lines, sa_lines,
+    hw_total, sa_total, grand_total, total_lines,
+    customers: [...repCustomers],
+  };
+
+  document.getElementById('rep-summary').innerHTML =
+    `<b>${total_lines.toLocaleString()}</b> lines across <b>${repCustomers.size}</b> customers · <b>${fmtMoneyShort(grand_total)}</b> total opportunity`;
+
+  // Populate the rep banner (visible on screen + print)
+  document.getElementById('rep-banner-name').textContent = rep;
+  document.getElementById('rep-banner-meta').innerHTML = `
+    <div>${repCustomers.size} customers · ${total_lines.toLocaleString()} lines</div>
+    <b>${fmtMoneyShort(grand_total)}</b>
+    <div style="font-size: 10px; margin-top: 4px;">
+      Partner: ${(DATA.meta.partner || 'Cisco Partner')} · As of ${DATA.meta.today}
+    </div>
+  `;
+
+  document.getElementById('rep-kpis').innerHTML = [
+    kpi('Total Book', fmtMoneyShort(grand_total), repCustomers.size + ' customers', 'kpi-info'),
+    kpi('Service Renew', fmtMoneyShort(summary.sr_total), summary.sr_count.toLocaleString() + ' lines'),
+    kpi('SR — Already Expired', fmtMoneyShort(summary.sr_expired), 'overdue / grace', 'kpi-danger'),
+    kpi('SR — Next 90 Days', fmtMoneyShort(summary.sr_90), 'quote-build window', 'kpi-warn'),
+    kpi('Software Renew', fmtMoneyShort(summary.sw_total), summary.sw_count.toLocaleString() + ' lines'),
+    kpi('HW Refresh', fmtMoneyShort(hw_total), hw_lines.length.toLocaleString() + ' items'),
+    kpi('Service Attach', fmtMoneyShort(sa_total), sa_lines.length.toLocaleString() + ' uncovered items'),
+  ].join('');
+
+  if (TABLES._rep_sr) TABLES._rep_sr.destroy();
+  TABLES._rep_sr = new Tabulator('#rep-sr-table', {
+    data: sr_lines,
+    layout: 'fitColumns',
+    height: 350,
+    columns: attachAllOption(srColumns(), sr_lines),
+    rowFormatter: rowFormatter,
+    placeholder: 'No Service Renew opportunities for this rep',
+  });
+
+  if (TABLES._rep_sw) TABLES._rep_sw.destroy();
+  TABLES._rep_sw = new Tabulator('#rep-sw-table', {
+    data: sw_lines,
+    layout: 'fitColumns',
+    height: 350,
+    columns: attachAllOption(swColumns(), sw_lines),
+    rowFormatter: rowFormatter,
+    placeholder: 'No Software Renew opportunities for this rep',
+  });
+
+  if (TABLES._rep_hw) TABLES._rep_hw.destroy();
+  TABLES._rep_hw = new Tabulator('#rep-hw-table', {
+    data: hw_lines,
+    layout: 'fitColumns',
+    height: 350,
+    columns: attachAllOption(hwColumns(), hw_lines),
+    rowFormatter: rowFormatter,
+    placeholder: 'No Hardware Refresh items at this rep\'s customers',
+  });
+
+  if (TABLES._rep_sa) TABLES._rep_sa.destroy();
+  TABLES._rep_sa = new Tabulator('#rep-sa-table', {
+    data: sa_lines,
+    layout: 'fitColumns',
+    height: 350,
+    columns: attachAllOption(saColumns(), sa_lines),
+    placeholder: 'No uncovered hardware at this rep\'s customers',
+  });
+}
+
+// -------- CUSTOMER 360 --------
+function buildCustomer360() {
+  const totals = customerTotals();
+  const search = document.getElementById('cust-search');
+  const results = document.getElementById('cust-results');
+
+  const showResults = (filter) => {
+    const q = (filter || '').toLowerCase().trim();
+    const matches = q ? totals.filter(t => t.customer.toLowerCase().includes(q)).slice(0, 50)
+                      : totals.slice(0, 50);
+    results.innerHTML = matches.map(t => `
+      <div class="cust-result" data-cust="${t.customer.replace(/"/g,'&quot;')}">
+        <div class="cust-result-name">${t.customer}</div>
+        <div class="cust-result-totals">${fmtMoneyShort(t.total)}</div>
+      </div>
+    `).join('') || '<div class="empty-state">No matches</div>';
+    results.querySelectorAll('.cust-result').forEach(el => {
+      el.addEventListener('click', () => showCustomerDetail(el.dataset.cust));
+    });
+  };
+  search.addEventListener('input', () => showResults(search.value));
+  showResults('');
+}
+
+function showCustomerDetail(custName) {
+  const detail = document.getElementById('cust-detail');
+  detail.classList.add('active');
+  document.getElementById('cust-name').textContent = custName;
+
+  const sr_rows = DATA.serviceRenew.filter(r => r.customer === custName);
+  const sa_rows = DATA.serviceAttach.filter(r => r.customer === custName);
+  const hw_rows = DATA.hardwareRefresh.filter(r => r.customer === custName);
+  const swa_rows = DATA.swRenewAuto.filter(r => r.customer === custName);
+  const swo_rows = DATA.swRenewOpp.filter(r => r.customer === custName);
+
+  const sr_total = sumBy(sr_rows, 'opp');
+  const sa_total = sumBy(sa_rows, 'opp');
+  const hw_total = sumBy(hw_rows, 'netPrice');
+  const swa_total = sumBy(swa_rows, 'opp1Yr');
+  const swo_total = sumBy(swo_rows, 'opp1Yr');
+  const grand = sr_total + sa_total + hw_total + swa_total + swo_total;
+
+  // Main ribbon: Total + the 5 mutually-exclusive report categories that sum to Total
+  document.getElementById('cust-kpis').innerHTML = [
+    kpi('Total Opportunity', fmtMoneyShort(grand), 'all reports', 'kpi-info'),
+    kpi('Service Renew', fmtMoneyShort(sr_total), sr_rows.length + ' lines'),
+    kpi('SW Renew', fmtMoneyShort(swo_total), swo_rows.length + ' lines'),
+    kpi('SW Auto-Renew', fmtMoneyShort(swa_total), swa_rows.length + ' lines'),
+    kpi('Service Attach', fmtMoneyShort(sa_total), sa_rows.length + ' lines'),
+    kpi('HW Refresh', fmtMoneyShort(hw_total), hw_rows.length + ' items'),
+  ].join('');
+
+  // ---- Per-section urgency breakdowns (Expired + Next 90d) ----
+  // Each breakdown is the same two buckets ('expired' and d30+d90) drawn from the same
+  // bucket field used everywhere else. Service Attach has no urgency breakdown — its rows
+  // are filtered by ship date (last 90d), not by an end-date bucket.
+  const renderBreakdown = (elId, rows, cfg) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = ''; return; } // empty -> CSS :empty rule hides it
+    const expired = rows.filter(r => r.bucket === 'expired');
+    const next90  = rows.filter(r => r.bucket === 'd30' || r.bucket === 'd90');
+    const unit = cfg.unit || 'lines';
+    el.innerHTML = [
+      kpi(cfg.expiredLabel, fmtMoneyShort(sumBy(expired, cfg.amountField)), expired.length + ' ' + unit, 'kpi-danger'),
+      kpi(cfg.next90Label,  fmtMoneyShort(sumBy(next90,  cfg.amountField)), next90.length  + ' ' + unit, 'kpi-warn'),
+    ].join('');
+  };
+  renderBreakdown('cust-sr-breakdown',  sr_rows,  { amountField: 'opp',      expiredLabel: 'SR Expired',      next90Label: 'SR Next 90d' });
+  renderBreakdown('cust-sw-breakdown',  swo_rows, { amountField: 'opp1Yr',   expiredLabel: 'SW Expired',      next90Label: 'SW Next 90d' });
+  renderBreakdown('cust-swa-breakdown', swa_rows, { amountField: 'opp1Yr',   expiredLabel: 'SW Auto Expired', next90Label: 'SW Auto Next 90d' });
+  renderBreakdown('cust-hw-breakdown',  hw_rows,  { amountField: 'netPrice', expiredLabel: 'Past EoS',        next90Label: 'EoS Next 90d', unit: 'items' });
+
+  // Build mini-tables for each
+  const buildTbl = (id, data, cols, height) => {
+    const el = document.querySelector(id);
+    if (TABLES['_c360_' + id]) TABLES['_c360_' + id].destroy();
+    if (!data.length) { el.innerHTML = '<div class="empty-state">No lines</div>'; return; }
+    TABLES['_c360_' + id] = new Tabulator(id, {
+      data, layout: 'fitColumns', height: height || 300, columns: cols, rowFormatter: rowFormatter,
+    });
+  };
+
+  // sort by expiration / urgency
+  sr_rows.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  swo_rows.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  hw_rows.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+
+  buildTbl('#cust-sr-table', sr_rows, attachAllOption(srColumns(true), sr_rows));
+  buildTbl('#cust-sw-table', swo_rows, attachAllOption(swColumns(true), swo_rows));
+  buildTbl('#cust-sa-table', sa_rows, attachAllOption(saColumns(true), sa_rows));
+  buildTbl('#cust-hw-table', hw_rows, attachAllOption(hwColumns(true), hw_rows));
+  buildTbl('#cust-swa-table', swa_rows, attachAllOption(swColumns(true), swa_rows));
+}
+
+// -------- EA --------
+function buildEA() {
+  // Filter: only show EA lines within 1 year (or already expired).
+  // Drops y2 and y2plus (anything more than 365 days out).
+  const KEEP_BUCKETS = new Set(['expired', 'd30', 'd90', 'd180', 'd365']);
+  const ea_rows = DATA.swRenewOpp.filter(r => r.eaFlag === 'Y' && KEEP_BUCKETS.has(r.bucket));
+  const ea_total = sumBy(ea_rows, 'opp1Yr');
+  const ea_full = sumBy(ea_rows, 'fullTermList');
+  const ea_custs = new Set(ea_rows.map(r => r.customer)).size;
+  const ea_deals = new Set(ea_rows.map(r => r.eaDealId).filter(Boolean)).size;
+  const ea_expired = ea_rows.filter(r => r.bucket === 'expired');
+  const ea_90 = ea_rows.filter(r => r.bucket === 'd30' || r.bucket === 'd90');
+
+  document.getElementById('ea-kpis').innerHTML = [
+    kpi('EA Total (1-Yr List)', fmtMoneyShort(ea_total), ea_rows.length + ' lines', 'kpi-info'),
+    kpi('Full-Term List Value', fmtMoneyShort(ea_full), 'over remaining contract'),
+    kpi('Unique EA Customers', ea_custs.toLocaleString(), 'distinct accounts'),
+    kpi('Distinct EA Deal IDs', ea_deals.toLocaleString(), 'separate EAs in flight'),
+    kpi('Expired Lines', fmtMoneyShort(sumBy(ea_expired, 'opp1Yr')), ea_expired.length + ' lines', 'kpi-danger'),
+    kpi('Next 90 Days', fmtMoneyShort(sumBy(ea_90, 'opp1Yr')), ea_90.length + ' lines', 'kpi-warn'),
+  ].join('');
+
+  ea_rows.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+
+  TABLES._ea = new Tabulator('#ea-table', {
+    data: ea_rows,
+    layout: 'fitColumns',
+    height: 500,
+    columns: attachAllOption([
+      { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 220, formatter: c => `<b>${c.getValue()||''}</b>` },
+      { title: 'EA Deal ID', field: 'eaDealId', headerFilter: 'input', cssClass: 'mono', width: 120 },
+      { title: 'Bucket', field: 'bucket', formatter: c => bucketPill(c.getValue()), width: 130, headerFilter: 'list', headerFilterParams: { values: { '': '— All —', expired:'EXPIRED', d30: '≤30D', d90: '31-90D', d180: '91-180D', d365: '181-365D' } } },
+      { title: 'End Date', field: 'endDate', cssClass: 'mono', width: 120 },
+      { title: 'Sub Type', field: 'subOfferType', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 140 },
+      { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 140 },
+      { title: 'Subscription', field: 'subscriptionDesc', minWidth: 200 },
+      { title: 'Qty', field: 'qty', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', width: 80, sorter: 'number' },
+      { title: '1-Yr List $', field: 'opp1Yr', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 130 },
+      { title: 'Sales Rep', field: 'salesRep', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 150 },
+    ], ea_rows),
+    rowFormatter: rowFormatter,
+  });
+
+  // Aggregated by customer
+  const byCust = {};
+  ea_rows.forEach(r => {
+    const c = r.customer || '(unspecified)';
+    if (!byCust[c]) byCust[c] = { customer: c, lines: 0, opp1Yr: 0, fullTerm: 0, deals: new Set() };
+    byCust[c].lines += 1;
+    byCust[c].opp1Yr += Number(r.opp1Yr)||0;
+    byCust[c].fullTerm += Number(r.fullTermList)||0;
+    if (r.eaDealId) byCust[c].deals.add(r.eaDealId);
+  });
+  const custRows = Object.values(byCust).map(c => ({...c, deals: c.deals.size})).sort((a,b)=>b.opp1Yr-a.opp1Yr);
+  TABLES._ea_cust = new Tabulator('#ea-cust-table', {
+    data: custRows,
+    layout: 'fitColumns',
+    height: 400,
+    columns: [
+      { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 280, formatter: c => `<b>${c.getValue()}</b>` },
+      { title: 'EA Deals', field: 'deals', hozAlign: 'right', cssClass: 'mono', width: 100, sorter: 'number' },
+      { title: 'Lines', field: 'lines', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', width: 100, sorter: 'number' },
+      { title: '1-Yr List $', field: 'opp1Yr', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'Full-Term $', field: 'fullTerm', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+    ],
+  });
+}
+
+// -------- HW FAMILY --------
+function buildHWFamily() {
+  // Aggregations
+  const byArch = {};
+  const byFamily = {};
+  DATA.hardwareRefresh.forEach(r => {
+    const a = r.architecture || '(Unknown)';
+    const f = r.productFamily || '(Unknown)';
+    byArch[a] = byArch[a] || { architecture: a, count: 0, net: 0, list: 0, expired: 0, expiredCount: 0 };
+    byArch[a].count += 1;
+    byArch[a].net += Number(r.netPrice)||0;
+    byArch[a].list += Number(r.listPrice)||0;
+    if (r.bucket === 'expired') { byArch[a].expired += Number(r.netPrice)||0; byArch[a].expiredCount += 1; }
+    byFamily[f] = byFamily[f] || { family: f, architecture: a, count: 0, net: 0, list: 0, expired: 0, expiredCount: 0 };
+    byFamily[f].count += 1;
+    byFamily[f].net += Number(r.netPrice)||0;
+    byFamily[f].list += Number(r.listPrice)||0;
+    if (r.bucket === 'expired') { byFamily[f].expired += Number(r.netPrice)||0; byFamily[f].expiredCount += 1; }
+  });
+  const archRows = Object.values(byArch).sort((a,b)=>b.net-a.net);
+  const familyRows = Object.values(byFamily).sort((a,b)=>b.net-a.net);
+
+  // Charts
+  const top10arch = archRows.slice(0, 10);
+  if (CHARTS.hwArch) CHARTS.hwArch.destroy();
+  CHARTS.hwArch = new Chart(document.getElementById('chart-hw-arch'), {
+    type: 'bar',
+    data: {
+      labels: top10arch.map(a => a.architecture),
+      datasets: [
+        { label: 'Past EoS', data: top10arch.map(a => a.expired), backgroundColor: '#ef4444' },
+        { label: 'Within 12mo', data: top10arch.map(a => a.net - a.expired), backgroundColor: '#60a5fa' },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtMoneyShort(ctx.parsed.x) } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#c8d1de', font: { family: 'IBM Plex Mono', size: 12 }, callback: v => fmtMoneyShort(v) }, grid: { color: '#2a3340' } },
+        y: { stacked: true, ticks: { color: '#e4ecf5', font: { family: 'IBM Plex Sans', size: 12 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  const top15fam = familyRows.slice(0, 15);
+  if (CHARTS.hwFam) CHARTS.hwFam.destroy();
+  CHARTS.hwFam = new Chart(document.getElementById('chart-hw-family'), {
+    type: 'bar',
+    data: {
+      labels: top15fam.map(f => f.family),
+      datasets: [
+        { label: 'Past EoS', data: top15fam.map(f => f.expired), backgroundColor: '#ef4444' },
+        { label: 'Within 12mo', data: top15fam.map(f => f.net - f.expired), backgroundColor: '#c084fc' },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtMoneyShort(ctx.parsed.x) } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#c8d1de', font: { family: 'IBM Plex Mono', size: 12 }, callback: v => fmtMoneyShort(v) }, grid: { color: '#2a3340' } },
+        y: { stacked: true, ticks: { color: '#e4ecf5', font: { family: 'IBM Plex Mono', size: 12 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  TABLES._hwFam = new Tabulator('#hw-family-table', {
+    data: familyRows,
+    layout: 'fitColumns',
+    height: 500,
+    columns: [
+      { title: 'Family', field: 'family', headerFilter: 'input', formatter: c => `<b class="mono">${c.getValue()}</b>`, width: 130 },
+      { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 200 },
+      { title: 'Items', field: 'count', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', sorter: 'number', width: 100 },
+      { title: 'Past EoS Items', field: 'expiredCount', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', sorter: 'number', width: 130 },
+      { title: 'Past EoS $ (Net)', field: 'expired', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'Total Net $', field: 'net', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number' },
+      { title: 'Total List $', field: 'list', formatter: c => fmtMoney0(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono' },
+    ],
+  });
+}
+
+// -------- DETAIL TABLES --------
+function rowFormatter(row) {
+  const data = row.getData();
+  const el = row.getElement();
+  el.classList.remove('row-expired', 'row-urgent');
+  if (data.bucket === 'expired') el.classList.add('row-expired');
+  else if (data.bucket === 'd30' || data.bucket === 'd90') el.classList.add('row-urgent');
+}
+
+function srColumns(compact) {
+  const cols = [
+    { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 220, formatter: c => `<b>${c.getValue()||''}</b>` },
+    { title: 'State', field: 'state', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 80, cssClass: 'mono col-print-hide' },
+    { title: 'Bucket', field: 'bucket', formatter: c => bucketPill(c.getValue()), width: 130, headerFilter: 'list', headerFilterParams: { values: { '': '— All —', expired:'EXPIRED', d30: '≤30D', d90: '31-90D', d180: '91-180D', d365: '181-365D' }, clearable: true } },
+    { title: 'End Date', field: 'endDate', headerFilter: 'input', cssClass: 'mono', width: 120 },
+    { title: 'Renewal Status', field: 'renewalStatus', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 170, cssClass: 'col-print-hide' },
+    { title: 'Coverage', field: 'coverageStatus', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 110 },
+    { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 160, cssClass: 'col-print-hide' },
+    { title: 'Family', field: 'productFamily', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 110, cssClass: 'col-print-hide' },
+    { title: 'Item', field: 'itemName', headerFilter: 'input', minWidth: 180 },
+    { title: 'Opp $', field: 'opp', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 110 },
+    { title: 'Contract #', field: 'contractNumber', headerFilter: 'input', cssClass: 'mono col-print-hide', width: 110 },
+    { title: 'Quote #', field: 'quoteNumber', headerFilter: 'input', cssClass: 'mono col-print-hide', width: 100 },
+    { title: 'Sales Rep', field: 'salesRep', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 150 },
+    { title: 'LOB', field: 'lob', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 130, cssClass: 'col-print-hide' },
+  ];
+  return compact ? cols.filter(c => !['state','lob','territory'].includes(c.field)) : cols;
+}
+
+function swColumns(compact) {
+  const cols = [
+    { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 220, formatter: c => `<b>${c.getValue()||''}</b>` },
+    { title: 'State', field: 'state', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 80, cssClass: 'mono col-print-hide' },
+    { title: 'Bucket', field: 'bucket', formatter: c => bucketPill(c.getValue()), width: 130, headerFilter: 'list', headerFilterParams: { values: { '': '— All —', expired:'EXPIRED', d30: '≤30D', d90: '31-90D', d180: '91-180D', d365: '181-365D' }, clearable: true } },
+    { title: 'End Date', field: 'endDate', cssClass: 'mono', width: 120 },
+    { title: 'EA?', field: 'eaFlag', width: 70, cssClass: 'mono', formatter: c => c.getValue() === 'Y' ? '<span style="color:var(--accent);font-weight:600;">EA</span>' : '<span class="muted">—</span>', headerFilter: 'list', headerFilterParams: { values: {'': '— All —', 'Y': 'Y', 'N': 'N'} } },
+    { title: 'Sub Type', field: 'subOfferType', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 140, cssClass: 'col-print-hide' },
+    { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 160, cssClass: 'col-print-hide' },
+    { title: 'Family', field: 'productFamily', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 110, cssClass: 'col-print-hide' },
+    { title: 'Subscription', field: 'subscriptionDesc', headerFilter: 'input', minWidth: 200 },
+    { title: 'Qty', field: 'qty', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', width: 80, sorter: 'number' },
+    { title: '1-Yr List $', field: 'opp1Yr', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 130 },
+    { title: 'Full Term $', field: 'fullTermList', formatter: c => fmtMoney0(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono col-print-hide', width: 130 },
+    { title: 'Sales Rep', field: 'salesRep', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 150 },
+  ];
+  return compact ? cols.filter(c => !['state'].includes(c.field)) : cols;
+}
+
+function saColumns(compact) {
+  return [
+    { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 220, formatter: c => `<b>${c.getValue()||''}</b>` },
+    { title: 'State', field: 'state', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 80, cssClass: 'mono col-print-hide' },
+    { title: 'Ship Date', field: 'shipDate', cssClass: 'mono', width: 110 },
+    { title: 'Coverage', field: 'coverageStatus', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 130 },
+    { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 160, cssClass: 'col-print-hide' },
+    { title: 'Family', field: 'productFamily', headerFilter: 'input', cssClass: 'mono col-print-hide', width: 110 },
+    { title: 'Item', field: 'itemName', headerFilter: 'input', minWidth: 200 },
+    { title: 'Qty', field: 'qty', formatter: c => fmtNum(c.getValue()), hozAlign: 'right', cssClass: 'mono', width: 80, sorter: 'number' },
+    { title: 'Attach $', field: 'opp', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 110 },
+  ];
+}
+
+function hwColumns(compact) {
+  return [
+    { title: 'Customer', field: 'customer', headerFilter: 'input', minWidth: 220, formatter: c => `<b>${c.getValue()||''}</b>` },
+    { title: 'State', field: 'state', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 80, cssClass: 'mono col-print-hide' },
+    { title: 'Bucket', field: 'bucket', formatter: c => bucketPill(c.getValue()), width: 130, headerFilter: 'list', headerFilterParams: { values: { '': '— All —', expired:'EXPIRED', d30: '≤30D', d90: '31-90D', d180: '91-180D', d365: '181-365D' }, clearable: true } },
+    { title: 'Last Support', field: 'lastSupportDate', cssClass: 'mono', width: 120 },
+    { title: 'Service', field: 'serviceStatus', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 110, cssClass: 'col-print-hide' },
+    { title: 'Architecture', field: 'architecture', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 160, cssClass: 'col-print-hide' },
+    { title: 'Family', field: 'productFamily', headerFilter: 'list', headerFilterParams: { valuesLookup: true, clearable: true }, width: 110 },
+    { title: 'Product ID', field: 'productId', headerFilter: 'input', cssClass: 'mono', width: 150 },
+    { title: 'Description', field: 'productDesc', headerFilter: 'input', minWidth: 250 },
+    { title: 'Age', field: 'instanceAge', formatter: c => { const v = c.getValue(); return v ? Number(v).toFixed(1) + 'y' : ''; }, hozAlign: 'right', cssClass: 'mono col-print-hide', width: 70, sorter: 'number' },
+    { title: 'Net $', field: 'netPrice', formatter: c => `<span class="money-cell">${fmtMoney0(c.getValue())}</span>`, hozAlign: 'right', sorter: 'number', width: 110 },
+    { title: 'List $', field: 'listPrice', formatter: c => fmtMoney0(c.getValue()), hozAlign: 'right', sorter: 'number', cssClass: 'mono col-print-hide', width: 110 },
+  ];
+}
+
+// ---- Shared time filter for detail tables ----
+// Each detail table can be filtered by bucket via the time-filter button row.
+// This wires up the buttons once per view, applies the filter to the Tabulator
+// instance, and updates the count display.
+function wireTimeFilter(target, table, total) {
+  const filterEl = document.querySelector(`.time-filter[data-target="${target}"]`);
+  if (!filterEl) return;
+  const countEl = document.getElementById(`${target}-count`);
+
+  const updateCount = (visible) => {
+    if (countEl) {
+      countEl.innerHTML = `<b>${visible.toLocaleString()}</b> of <b>${total.toLocaleString()}</b> rows`;
+    }
+  };
+  updateCount(total);
+
+  // Handler factory — different bucket sets per filter button
+  const applyFilter = (bucket) => {
+    if (bucket === 'all') {
+      table.clearFilter();
+    } else if (bucket === 'expired') {
+      table.setFilter('bucket', '=', 'expired');
+    } else if (bucket === 'd30') {
+      table.setFilter('bucket', '=', 'd30');
+    } else if (bucket === 'd90') {
+      table.setFilter('bucket', '=', 'd90');
+    } else if (bucket === 'd180') {
+      table.setFilter('bucket', '=', 'd180');
+    } else if (bucket === 'd365') {
+      table.setFilter('bucket', '=', 'd365');
+    } else if (bucket === 'future') {
+      // 1 year+ out
+      table.setFilter('bucket', 'in', ['y2', 'y2plus']);
+    } else if (bucket === 'current') {
+      // For HW: currently still under support — anything not already past EoS
+      table.setFilter('bucket', 'in', ['d30', 'd90', 'd180', 'd365', 'y2', 'y2plus', 'unknown']);
+    }
+    setTimeout(() => updateCount(table.getDataCount('active')), 0);
+  };
+
+  // Wire button clicks (replace existing handlers if re-built)
+  filterEl.querySelectorAll('.time-filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      filterEl.querySelectorAll('.time-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilter(btn.dataset.bucket);
+    };
+  });
+
+  // Default state — All
+  filterEl.querySelectorAll('.time-filter-btn').forEach(b => b.classList.remove('active'));
+  const allBtn = filterEl.querySelector('.time-filter-btn[data-bucket="all"]');
+  if (allBtn) allBtn.classList.add('active');
+}
+
+function buildServiceRenew() {
+  const data = [...DATA.serviceRenew].filter(r => (r.opp || 0) > 0);
+  data.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  TABLES._sr = new Tabulator('#sr-table', {
+    data, layout: 'fitColumns', height: 'calc(100vh - 280px)',
+    pagination: true, paginationSize: 200, paginationCounter: 'rows',
+    columns: attachAllOption(srColumns(), data),
+    rowFormatter: rowFormatter,
+  });
+  wireTimeFilter('sr', TABLES._sr, data.length);
+}
+
+function buildServiceAttach() {
+  const data = [...DATA.serviceAttach].filter(r => (r.opp||0) > 0 && r.coverageStatus === 'UNCOVERED');
+  data.sort((a,b) => (b.shipDate||'').localeCompare(a.shipDate||''));
+  TABLES._sa = new Tabulator('#sa-table', {
+    data, layout: 'fitColumns', height: 'calc(100vh - 220px)',
+    pagination: true, paginationSize: 200, paginationCounter: 'rows',
+    columns: attachAllOption(saColumns(), data),
+  });
+}
+
+function buildHWRefresh() {
+  const data = [...DATA.hardwareRefresh];
+  data.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  TABLES._hw = new Tabulator('#hw-table', {
+    data, layout: 'fitColumns', height: 'calc(100vh - 280px)',
+    pagination: true, paginationSize: 200, paginationCounter: 'rows',
+    columns: attachAllOption(hwColumns(), data),
+    rowFormatter: rowFormatter,
+  });
+  wireTimeFilter('hw', TABLES._hw, data.length);
+}
+
+function buildSWRenew() {
+  const data = [...DATA.swRenewOpp].filter(r => (r.opp1Yr || 0) > 0);
+  data.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  TABLES._sw = new Tabulator('#sw-table', {
+    data, layout: 'fitColumns', height: 'calc(100vh - 280px)',
+    pagination: true, paginationSize: 200, paginationCounter: 'rows',
+    columns: attachAllOption(swColumns(), data),
+    rowFormatter: rowFormatter,
+  });
+  wireTimeFilter('sw', TABLES._sw, data.length);
+}
+
+function buildSWAuto() {
+  const data = [...DATA.swRenewAuto].filter(r => (r.opp1Yr||0) > 0);
+  data.sort((a,b) => BUCKET_ORDER.indexOf(a.bucket||'unknown') - BUCKET_ORDER.indexOf(b.bucket||'unknown'));
+  TABLES._swa = new Tabulator('#swa-table', {
+    data, layout: 'fitColumns', height: 'calc(100vh - 280px)',
+    pagination: true, paginationSize: 200, paginationCounter: 'rows',
+    columns: attachAllOption(swColumns(), data),
+    rowFormatter: rowFormatter,
+  });
+  wireTimeFilter('swa', TABLES._swa, data.length);
+}
+
+// ==================== PRINT HANDLERS ====================
+// Tabulator virtualizes rows for performance, which means in normal display
+// only the rows currently in view are rendered (with inline transforms and
+// fixed-height holders). When printing, that produces blank pages and
+// truncated tables. Before printing, force every Tabulator instance to fully
+// render all rows; after printing, restore normal rendering.
+function forEachTabulator(fn) {
+  for (const key in TABLES) {
+    const t = TABLES[key];
+    if (t && typeof t === 'object' && typeof t.redraw === 'function') {
+      try { fn(t); } catch (e) { console.warn('print hook:', e); }
+    }
+  }
+}
+
+window.addEventListener('beforeprint', () => {
+  // Disable virtualization so all rows render in DOM
+  forEachTabulator(t => {
+    try {
+      // setHeight to false removes any fixed height; renderVisibleRows will be redrawn
+      t.setHeight(false);
+      t.redraw(true);
+    } catch (e) {}
+  });
+  // Give the browser a tick to relayout before the print dialog renders
+  // (some browsers don't honor async work here, but it doesn't hurt)
+});
+
+window.addEventListener('afterprint', () => {
+  // Restore normal screen rendering
+  forEachTabulator(t => {
+    try { t.redraw(true); } catch (e) {}
+  });
+});
+
+// ==================== KICK OFF ====================
+setupDropzone();
+</script>
+
+</body>
+</html>
